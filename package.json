@@ -10,7 +10,8 @@
     "web": "npx expo start --web",
     "build": "expo build",
     "test": "jest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "postinstall": "patch-package"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -18,6 +19,7 @@
   "devDependencies": {
     "@babel/core": "^7.25.0",
     "@types/react": "~19.1.0",
+    "patch-package": "^8.0.1",
     "typescript": "^5.4.5"
   },
   "private": true,
