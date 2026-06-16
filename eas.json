@@ -28,7 +28,7 @@
         "API_BASE_URL": "https://hometuitionapp.com/api",
         "EXPO_PUBLIC_API_BASE_URL": "https://hometuitionapp.com/api",
         "SOCKET_URL": "https://hometuitionapp.com",
-        "NEW_ARCH_ENABLED": "true"
+        "NEW_ARCH_ENABLED": "0"
       }
     }
   },
