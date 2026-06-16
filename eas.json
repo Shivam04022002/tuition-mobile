@@ -1,0 +1,38 @@
+{
+  "cli": {
+    "version": ">= 20.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "NEW_ARCH_ENABLED": "0",
+        "API_BASE_URL": "https://hometuitionapp.com/api",
+        "EXPO_PUBLIC_API_BASE_URL": "https://hometuitionapp.com/api"
+      }
+    },
+    "production": {
+      "distribution": "store",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_ENV": "production",
+        "API_BASE_URL": "https://hometuitionapp.com/api",
+        "EXPO_PUBLIC_API_BASE_URL": "https://hometuitionapp.com/api",
+        "SOCKET_URL": "https://hometuitionapp.com",
+        "NEW_ARCH_ENABLED": "true"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
