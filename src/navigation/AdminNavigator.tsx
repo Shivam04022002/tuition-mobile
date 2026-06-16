@@ -124,7 +124,7 @@ const AdminTabNavigator: React.FC = () => {
           paddingTop: 8,
           height: 60,
           elevation: 8,
-          shadowColor: theme.colors.shadow.medium,
+          shadowColor: 'rgba(45, 10, 125, 0.12)',
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.1,
           shadowRadius: 4,

@@ -91,7 +91,7 @@ const SplashScreen: React.FC = () => {
             {
               backgroundColor: theme.colors.primary,
               opacity: logoOpacityAnim,
-              shadowColor: theme.colors.shadow.medium,
+              shadowColor: 'rgba(45, 10, 125, 0.12)',
               shadowOffset: { width: 0, height: 8 },
               shadowOpacity: 0.15,
               shadowRadius: 16,

@@ -47,7 +47,7 @@ const authSlice = createSlice({
       state.isLoggedIn = !!action.payload;
       if (action.payload) {
         state.role = action.payload.role;
-        state.onboardingCompleted = action.payload.onboardingCompleted;
+        state.onboardingCompleted = action.payload.onboardingCompleted ?? false;
       }
     },
     setToken: (state, action: PayloadAction<string | null>) => {

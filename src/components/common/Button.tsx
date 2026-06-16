@@ -57,7 +57,7 @@ const Button: React.FC<ButtonProps> = ({
         return {
           ...baseStyle,
           backgroundColor: disabled ? theme.colors.border : theme.colors.primary,
-          shadowColor: theme.colors.shadow.medium,
+          shadowColor: 'rgba(45, 10, 125, 0.12)',
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.1,
           shadowRadius: 4,
@@ -67,7 +67,7 @@ const Button: React.FC<ButtonProps> = ({
         return {
           ...baseStyle,
           backgroundColor: disabled ? theme.colors.border : theme.colors.secondary,
-          shadowColor: theme.colors.shadow.medium,
+          shadowColor: 'rgba(45, 10, 125, 0.12)',
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.1,
           shadowRadius: 4,

@@ -45,7 +45,7 @@ const Card: React.FC<CardProps> = ({
       case 'elevated':
         return {
           ...baseStyle,
-          shadowColor: shadow ? theme.colors.shadow.medium : 'transparent',
+          shadowColor: shadow ? 'rgba(45, 10, 125, 0.12)' : 'transparent',
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: shadow ? 0.1 : 0,
           shadowRadius: shadow ? 8 : 0,
@@ -61,7 +61,7 @@ const Card: React.FC<CardProps> = ({
       default:
         return {
           ...baseStyle,
-          shadowColor: shadow ? theme.colors.shadow.small : 'transparent',
+          shadowColor: shadow ? 'rgba(45, 10, 125, 0.06)' : 'transparent',
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: shadow ? 0.05 : 0,
           shadowRadius: shadow ? 4 : 0,
