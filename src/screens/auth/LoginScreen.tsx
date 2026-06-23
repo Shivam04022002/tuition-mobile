@@ -118,6 +118,7 @@ const LoginScreen: React.FC = () => {
 
       // Store in Redux — authSlice
       dispatch(setToken(response.token));
+      console.log('[DISPATCH 1] setToken fired');
       dispatch(setUser({
         id: response.user.id,
         email: response.user.email,
@@ -127,9 +128,11 @@ const LoginScreen: React.FC = () => {
         profileCompleted: response.user.profileCompleted,
         onboardingCompleted: response.user.onboardingCompleted,
       }));
+      console.log('[DISPATCH 2] setUser fired — authSlice.isLoggedIn=true, authSlice.role=', response.user.role, 'authSlice.onboardingCompleted=', response.user.onboardingCompleted ?? false);
 
       // Store in Redux — userSlice (drives RootNavigator's onboardingCompleted check)
       dispatch(setUserRole(response.user.role));
+      console.log('[DISPATCH 3] setUserRole fired:', response.user.role);
       dispatch(setProfile({
         id: response.user.id,
         firstName: response.user.profile?.firstName ?? '',
@@ -138,9 +141,11 @@ const LoginScreen: React.FC = () => {
         phoneNumber: response.user.phoneNumber,
         profileImage: response.user.profile?.profileImage,
       }));
+      console.log('[DISPATCH 4] setProfile fired — userSlice.profileCompleted=true');
       dispatch(setOnboardingCompleted(response.user.onboardingCompleted ?? true));
+      console.log('[DISPATCH 5] setOnboardingCompleted fired:', response.user.onboardingCompleted ?? true);
 
-      console.log('AUTH_STATE', { role: response.role, onboardingCompleted: response.user.onboardingCompleted });
+      console.log('AUTH_STATE FINAL', { role: response.user.role, onboardingCompleted: response.user.onboardingCompleted ?? true });
 
     } catch (error: any) {
       dispatch(setError(error.message || 'Login failed'));
@@ -199,10 +204,8 @@ const LoginScreen: React.FC = () => {
       console.log('🔑 [OTP] Token received:', response.token ? 'Yes' : 'No');
 
       // Store in Redux
-      console.log('💾 [OTP] Dispatching setToken...');
       dispatch(setToken(response.token));
-      
-      console.log('💾 [OTP] Dispatching setUser with role:', response.user.role);
+      console.log('[OTP DISPATCH 1] setToken fired');
       dispatch(setUser({
         id: response.user.id,
         email: response.user.email,
@@ -212,11 +215,11 @@ const LoginScreen: React.FC = () => {
         profileCompleted: response.user.profileCompleted,
         onboardingCompleted: response.user.onboardingCompleted,
       }));
+      console.log('[OTP DISPATCH 2] setUser fired — authSlice.isLoggedIn=true, authSlice.role=', response.user.role, 'authSlice.onboardingCompleted=', response.user.onboardingCompleted ?? false);
 
-      console.log('LOGIN_SUCCESS', response);
-
-      // Store in Redux — userSlice (drives RootNavigator's onboardingCompleted check)
+      // Store in Redux — userSlice
       dispatch(setUserRole(response.user.role));
+      console.log('[OTP DISPATCH 3] setUserRole fired:', response.user.role);
       dispatch(setProfile({
         id: response.user.id,
         firstName: response.user.profile?.firstName ?? '',
@@ -225,10 +228,11 @@ const LoginScreen: React.FC = () => {
         phoneNumber: response.user.phoneNumber,
         profileImage: response.user.profile?.profileImage,
       }));
+      console.log('[OTP DISPATCH 4] setProfile fired — userSlice.profileCompleted=true');
       dispatch(setOnboardingCompleted(response.user.onboardingCompleted ?? true));
+      console.log('[OTP DISPATCH 5] setOnboardingCompleted fired:', response.user.onboardingCompleted ?? true);
 
-      console.log('AUTH_STATE', { role: response.user.role, onboardingCompleted: response.user.onboardingCompleted });
-      console.log('ROOT_NAVIGATOR', { token: response.token, role: response.user.role });
+      console.log('OTP AUTH_STATE FINAL', { role: response.user.role, onboardingCompleted: response.user.onboardingCompleted ?? true });
 
     } catch (error: any) {
       dispatch(setError(error.message || 'OTP verification failed'));

@@ -31,19 +31,9 @@
     "plugins": [
       "expo-font",
       "expo-splash-screen",
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "newArchEnabled": false
-          },
-          "ios": {
-            "newArchEnabled": false
-          }
-        }
-      ]
+      "expo-build-properties"
     ],
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "extra": {
       "eas": {
         "projectId": "6b608924-0f39-43a5-9959-fcefd991337d"

@@ -20,6 +20,8 @@ import { selectAuthToken, logout } from '../../redux/slices/authSlice';
 import { applyToLead } from '../../services/dashboardApi';
 import { TutorMatch, TeacherApplication, DemoClass } from '../../services/teacherApi';
 import { useTeacherDashboard } from '../../hooks/useTeacherDashboard';
+import { useSubscription } from '../../hooks/useSubscription';
+import { useCredits } from '../../hooks/useCredits';
 import { StatsCard, EmptyState, SectionHeader, PrimaryButton, ProfileAvatar } from '../../components/ui';
 import { colors } from '../../theme/colors';
 import { shadows } from '../../theme/shadows';
@@ -62,6 +64,20 @@ const TeacherDashboardScreen: React.FC = () => {
     refresh: onRefresh,
     retry: loadDashboardData,
   } = useTeacherDashboard(token);
+
+  // ── Subscription data via hook ──────────────────────────────────────────────
+  const {
+    currentData: subscriptionData,
+    isLoading: subscriptionLoading,
+    error: subscriptionError,
+  } = useSubscription();
+
+  // ── Credits data via hook ───────────────────────────────────────────────────
+  const {
+    balance: creditBalance,
+    isLoading: creditsLoading,
+    error: creditsError,
+  } = useCredits();
 
   const [applyingId, setApplyingId] = useState<string | null>(null);
 
@@ -230,22 +246,203 @@ const TeacherDashboardScreen: React.FC = () => {
                 <Ionicons name="diamond-outline" size={24} color={colors.warning} />
               </View>
               <View style={styles.analyticsInfo}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={[styles.analyticsTitle, { color: colors.text }]}>
-                    Free Plan
-                  </Text>
-                  <View style={{ backgroundColor: '#94A3B8', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 8 }}>
-                    <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '700' }}>FREE</Text>
+                {subscriptionLoading ? (
+                  // Loading state - shimmer effect
+                  <View style={{ width: 120, height: 18, backgroundColor: colors.border, borderRadius: 4 }} />
+                ) : subscriptionError || !subscriptionData ? (
+                  // Error state - fallback to safe defaults
+                  <View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={[styles.analyticsTitle, { color: colors.text }]}>
+                        Free Plan
+                      </Text>
+                      <View style={{ backgroundColor: '#94A3B8', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 8 }}>
+                        <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '700' }}>FREE</Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.analyticsSubtitle, { color: colors.textSecondary }]}>
+                      Tap to view subscription options
+                    </Text>
                   </View>
-                </View>
-                <Text style={[styles.analyticsSubtitle, { color: colors.textSecondary }]}>
-                  Upgrade for more applications, leads & visibility
-                </Text>
+                ) : (
+                  // Live data from backend
+                  <View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={[styles.analyticsTitle, { color: colors.text }]}>
+                        {subscriptionData.plan.displayName}
+                      </Text>
+                      <View style={{
+                        backgroundColor: subscriptionData.plan.badgeColor || '#94A3B8',
+                        paddingHorizontal: 6,
+                        paddingVertical: 2,
+                        borderRadius: 6,
+                        marginLeft: 8
+                      }}>
+                        <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '700' }}>
+                          {subscriptionData.plan.badge || subscriptionData.currentPlan.toUpperCase()}
+                        </Text>
+                      </View>
+                      {/* Status indicator */}
+                      {subscriptionData.subscription?.status === 'active' && (
+                        <View style={{
+                          backgroundColor: colors.success,
+                          paddingHorizontal: 6,
+                          paddingVertical: 2,
+                          borderRadius: 6,
+                          marginLeft: 6
+                        }}>
+                          <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '600' }}>ACTIVE</Text>
+                        </View>
+                      )}
+                      {subscriptionData.subscription?.status === 'expired' && (
+                        <View style={{
+                          backgroundColor: colors.error,
+                          paddingHorizontal: 6,
+                          paddingVertical: 2,
+                          borderRadius: 6,
+                          marginLeft: 6
+                        }}>
+                          <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '600' }}>EXPIRED</Text>
+                        </View>
+                      )}
+                    </View>
+                    {/* Credits display if available */}
+                    {(subscriptionData.limits.creditsPerMonth ?? 0) > 0 && (
+                      <Text style={[styles.analyticsSubtitle, { color: colors.textSecondary }]}>
+                        {subscriptionData.limits.creditsPerMonth === -1
+                          ? 'Unlimited credits'
+                          : `${subscriptionData.limits.creditsPerMonth} credits/month`}
+                      </Text>
+                    )}
+                    {/* Show remaining if not unlimited and not free */}
+                    {subscriptionData.currentPlan !== 'free' &&
+                     subscriptionData.limits.creditsPerMonth !== -1 &&
+                     subscriptionData.limits.creditsPerMonth > 0 && (
+                      <Text style={[styles.analyticsSubtitle, { color: colors.primary, fontWeight: '500' }]}>
+                        {subscriptionData.limits.creditsPerMonth - (subscriptionData.usage?.leadUnlocksUsed || 0)} remaining
+                      </Text>
+                    )}
+                    {/* Default subtitle for free plan */}
+                    {subscriptionData.currentPlan === 'free' && (
+                      <Text style={[styles.analyticsSubtitle, { color: colors.textSecondary }]}>
+                        Upgrade for more applications, leads & visibility
+                      </Text>
+                    )}
+                  </View>
+                )}
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.warning} />
+            <Ionicons name="chevron-forward" size={20} color={subscriptionLoading ? colors.textTertiary : colors.warning} />
           </View>
         </TouchableOpacity>
+      </View>
+
+      {/* ── Credits Balance Card ─────────────────────────────────────────── */}
+      <View style={styles.section}>
+        <TouchableOpacity
+          style={[styles.analyticsCard, { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.success + '30' }]}
+          onPress={() => navigation.navigate('TeacherCredits')}
+          activeOpacity={0.8}
+        >
+          <View style={styles.analyticsContent}>
+            <View style={styles.analyticsLeft}>
+              <View style={[styles.analyticsIcon, { backgroundColor: colors.success + '20' }]}>
+                <Ionicons name="wallet-outline" size={24} color={colors.success} />
+              </View>
+              <View style={styles.analyticsInfo}>
+                {creditsLoading ? (
+                  // Loading state - shimmer
+                  <View style={{ width: 140, height: 18, backgroundColor: colors.border, borderRadius: 4 }} />
+                ) : creditsError || !creditBalance ? (
+                  // Error state - fallback
+                  <View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={[styles.analyticsTitle, { color: colors.text }]}>
+                        Credits
+                      </Text>
+                      <View style={{ backgroundColor: colors.textTertiary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 8 }}>
+                        <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '700' }}>--</Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.analyticsSubtitle, { color: colors.textSecondary }]}>
+                      Tap to view credit balance
+                    </Text>
+                  </View>
+                ) : (
+                  // Live data from backend
+                  <View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={[styles.analyticsTitle, { color: colors.text }]}>
+                        {creditBalance.isUnlimited ? 'Unlimited' : `${creditBalance.creditsRemaining}`} Credits
+                      </Text>
+                      <View style={{
+                        backgroundColor: creditBalance.creditsRemaining === 0 ? colors.error : colors.success,
+                        paddingHorizontal: 6,
+                        paddingVertical: 2,
+                        borderRadius: 6,
+                        marginLeft: 8
+                      }}>
+                        <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '700' }}>
+                          {creditBalance.planName.charAt(0).toUpperCase() + creditBalance.planName.slice(1)}
+                        </Text>
+                      </View>
+                    </View>
+                    {/* Credits usage subtitle */}
+                    {!creditBalance.isUnlimited && creditBalance.totalCredits > 0 && (
+                      <Text style={[styles.analyticsSubtitle, { color: colors.textSecondary }]}>
+                        {creditBalance.creditsUsed} used of {creditBalance.totalCredits} monthly
+                      </Text>
+                    )}
+                    {creditBalance.isUnlimited && (
+                      <Text style={[styles.analyticsSubtitle, { color: colors.success }]}>
+                        Unlimited credits with {creditBalance.planName} plan
+                      </Text>
+                    )}
+                    {/* Low credits warning */}
+                    {!creditBalance.isUnlimited && creditBalance.creditsRemaining <= 2 && creditBalance.creditsRemaining > 0 && (
+                      <Text style={[styles.analyticsSubtitle, { color: colors.warning, fontWeight: '500' }]}>
+                        Low credits - buy more to unlock leads
+                      </Text>
+                    )}
+                    {/* Zero credits alert */}
+                    {!creditBalance.isUnlimited && creditBalance.creditsRemaining === 0 && (
+                      <Text style={[styles.analyticsSubtitle, { color: colors.error, fontWeight: '600' }]}>
+                        No credits remaining - buy more to continue
+                      </Text>
+                    )}
+                  </View>
+                )}
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={creditsLoading ? colors.textTertiary : colors.success} />
+          </View>
+        </TouchableOpacity>
+
+        {/* Buy More Credits CTA (shown for non-unlimited plans) */}
+        {!creditsLoading && !creditsError && creditBalance && !creditBalance.isUnlimited && (
+          <TouchableOpacity
+            style={[styles.analyticsCard, { backgroundColor: colors.card, marginTop: 8 }]}
+            onPress={() => navigation.navigate('CreditPacks')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.analyticsContent}>
+              <View style={styles.analyticsLeft}>
+                <View style={[styles.analyticsIcon, { backgroundColor: colors.accent + '20' }]}>
+                  <Ionicons name="add-circle-outline" size={24} color={colors.accent} />
+                </View>
+                <View style={styles.analyticsInfo}>
+                  <Text style={[styles.analyticsTitle, { color: colors.text }]}>
+                    Buy More Credits
+                  </Text>
+                  <Text style={[styles.analyticsSubtitle, { color: colors.textSecondary }]}>
+                    Purchase credit packs to unlock more leads
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.accent} />
+            </View>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* ── Analytics Quick Action ───────────────────────────────────────── */}

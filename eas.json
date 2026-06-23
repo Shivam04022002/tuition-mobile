@@ -14,8 +14,8 @@
       },
       "env": {
         "NEW_ARCH_ENABLED": "0",
-        "API_BASE_URL": "https://hometuitionapp.com/api",
-        "EXPO_PUBLIC_API_BASE_URL": "https://hometuitionapp.com/api"
+        "API_BASE_URL": "http://15.206.92.25:5000/api",
+        "EXPO_PUBLIC_API_BASE_URL": "http://15.206.92.25:5000/api"
       }
     },
     "production": {
@@ -25,9 +25,9 @@
       },
       "env": {
         "APP_ENV": "production",
-        "API_BASE_URL": "https://hometuitionapp.com/api",
-        "EXPO_PUBLIC_API_BASE_URL": "https://hometuitionapp.com/api",
-        "SOCKET_URL": "https://hometuitionapp.com",
+        "API_BASE_URL": "http://15.206.92.25:5000/api",
+        "EXPO_PUBLIC_API_BASE_URL": "http://15.206.92.25:5000/api",
+        "SOCKET_URL": "http://15.206.92.25:5000",
         "NEW_ARCH_ENABLED": "0"
       }
     }

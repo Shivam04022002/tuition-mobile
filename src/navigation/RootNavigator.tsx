@@ -2,8 +2,7 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { selectIsLoggedIn, selectAuthRole } from '../redux/slices/authSlice';
-import { selectOnboardingCompleted } from '../redux/slices/userSlice';
+import { selectIsLoggedIn, selectAuthRole, selectAuthOnboardingCompleted } from '../redux/slices/authSlice';
 import { selectSplashScreenVisible } from '../redux/slices/appSlice';
 
 // Import Navigators
@@ -23,7 +22,7 @@ const Stack = createNativeStackNavigator();
 const RootNavigator: React.FC = () => {
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const userRole = useSelector(selectAuthRole);
-  const onboardingCompleted = useSelector(selectOnboardingCompleted);
+  const onboardingCompleted = useSelector(selectAuthOnboardingCompleted);
   const isSplashVisible = useSelector(selectSplashScreenVisible);
 
   // Debug logging
@@ -33,6 +32,7 @@ const RootNavigator: React.FC = () => {
     onboardingCompleted,
     isSplashVisible,
   });
+  console.log('🧭 [ROOT_NAVIGATOR] Source: isLoggedIn+onboardingCompleted both from authSlice (atomic)');
 
   return (
     <NavigationContainer>

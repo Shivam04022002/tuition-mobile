@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAppSelector, useAppDispatch } from '../../redux/store';
 import { selectAuthToken, logout } from '../../redux/slices/authSlice';
 import { selectUserProfile } from '../../redux/slices/userSlice';
@@ -84,6 +85,14 @@ const ParentProfileScreen: React.FC = () => {
     loadProfile();
   }, [loadProfile]);
 
+  // Refresh profile when screen comes into focus (e.g., after editing)
+  useFocusEffect(
+    useCallback(() => {
+      console.log('👤 [PARENT_PROFILE] Screen focused, refreshing profile');
+      loadProfile();
+    }, [loadProfile])
+  );
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadProfile();
@@ -108,9 +117,9 @@ const ParentProfileScreen: React.FC = () => {
   }, [dispatch]);
 
   const handleEditProfile = useCallback(() => {
-    // Navigate to edit profile screen
-    console.log('✏️ [PARENT_PROFILE] Edit profile clicked');
-  }, []);
+    console.log('✏️ [PARENT_PROFILE] Navigating to Edit Profile');
+    navigation.navigate('EditParentProfile');
+  }, [navigation]);
 
   const displayName = profile?.profile?.firstName && profile?.profile?.lastName
     ? `${profile.profile.firstName} ${profile.profile.lastName}`
@@ -164,7 +173,10 @@ const ParentProfileScreen: React.FC = () => {
         { icon: 'videocam-outline',      label: 'Live Classes',    color: colors.info,      onPress: () => navigation.navigate('LiveClasses', { role: 'parent' }) },
         { icon: 'storefront-outline',    label: 'Course Marketplace', color: colors.secondary, onPress: () => navigation.navigate('CourseMarketplace', { role: 'parent' }) },
         { icon: 'people-outline',        label: 'My Children',     color: colors.pink,      onPress: () => {} },
-        { icon: 'card-outline',          label: 'Payment History', color: colors.pink,      onPress: () => {} },
+        { icon: 'card-outline',          label: 'Payment History', color: colors.pink,      onPress: () => navigation.navigate('ParentPaymentHistory') },
+        { icon: 'chatbubble-outline',    label: 'My Reviews',      color: colors.warning,  onPress: () => navigation.navigate('ParentReviewHistory') },
+        { icon: 'call-outline',          label: 'Contact History', color: colors.accent,   onPress: () => navigation.navigate('ContactHistory') },
+        { icon: 'bookmark-outline',      label: 'Saved Tutors',    color: colors.primary,  onPress: () => navigation.navigate('Shortlisted') },
       ],
     },
     {

@@ -415,3 +415,32 @@ export const withdrawApplication = async (token: string, applicationId: string):
     throw new Error('Failed to withdraw application');
   }
 };
+
+// Update Teacher Profile
+export const updateTeacherProfile = async (
+  token: string,
+  updates: Partial<TeacherProfile>
+): Promise<TeacherProfile> => {
+  const response = await fetch(`${API_BASE_URL}/teachers/profile`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(updates),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) throw new Error('Unauthorized');
+    if (response.status === 403) throw new Error('Forbidden');
+    if (response.status === 422) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Validation error');
+    }
+    if (response.status >= 500) throw new Error('Server error');
+    throw new Error(`Failed to update profile (${response.status})`);
+  }
+
+  const data = await response.json();
+  return data.data || data;
+};

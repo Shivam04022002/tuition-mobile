@@ -18,6 +18,7 @@ import TutorsScreen from '../screens/parent/TutorsScreen';
 import RequirementsScreen from '../screens/parent/RequirementsScreen';
 import NotificationsScreen from '../screens/parent/NotificationsScreen';
 import ParentProfileScreen from '../screens/parent/ParentProfileScreen';
+import EditParentProfileScreen from '../screens/parent/EditParentProfileScreen';
 import LocationMapScreen from '../screens/maps/LocationMapScreen';
 import SupportScreen from '../screens/support/SupportScreen';
 import FAQScreen from '../screens/support/FAQScreen';
@@ -69,6 +70,8 @@ import DemoClassesScreen from '../screens/parent/DemoClassesScreen';
 
 // Contact History Screen
 import ContactHistoryScreen from '../screens/parent/ContactHistoryScreen';
+import ParentPaymentHistoryScreen from '../screens/parent/ParentPaymentHistoryScreen';
+import ParentReviewHistoryScreen from '../screens/parent/ParentReviewHistoryScreen';
 
 // Course Marketplace Screens
 import CourseMarketplaceScreen from '../screens/courses/CourseMarketplaceScreen';
@@ -366,6 +369,21 @@ const ParentNavigator: React.FC = () => {
       <Stack.Screen
         name="ParentApplicationReview"
         component={ParentApplicationReviewScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="EditParentProfile"
+        component={EditParentProfileScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ParentPaymentHistory"
+        component={ParentPaymentHistoryScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ParentReviewHistory"
+        component={ParentReviewHistoryScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

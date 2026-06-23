@@ -23,6 +23,7 @@ import { selectAuthToken, logout } from '../../redux/slices/authSlice';
 import {
   getTeacherProfile,
   toggleVacationMode,
+  updateTeacherProfile,
   TeacherProfile,
 } from '../../services/teacherApi';
 import MapPicker from '../../components/maps/MapPicker';
@@ -40,6 +41,7 @@ const TeacherProfileScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState<TeacherProfile | null>(null);
   const [togglingVacation, setTogglingVacation] = useState(false);
+  const [savingLocations, setSavingLocations] = useState(false);
   const [preferredLocations, setPreferredLocations] = useState<TeacherPreferredLocation[]>([]);
   const [showAddLocation, setShowAddLocation] = useState(false);
   const [newLocationArea, setNewLocationArea] = useState('');
@@ -91,6 +93,60 @@ const TeacherProfileScreen: React.FC = () => {
     await loadProfile();
     setRefreshing(false);
   }, [loadProfile]);
+
+  // Persist preferred locations to backend
+  const persistPreferredLocations = useCallback(async (locations: TeacherPreferredLocation[]) => {
+    if (!token) {
+      Alert.alert('Error', 'Authentication required');
+      return false;
+    }
+
+    try {
+      setSavingLocations(true);
+
+      // Validate locations before sending
+      const validLocations = locations.filter(loc =>
+        loc.area?.trim() &&
+        loc.city?.trim() &&
+        typeof loc.latitude === 'number' &&
+        typeof loc.longitude === 'number' &&
+        !isNaN(loc.latitude) &&
+        !isNaN(loc.longitude) &&
+        loc.radiusKm > 0
+      );
+
+      if (validLocations.length !== locations.length) {
+        console.warn('[TeacherProfile] Filtered out invalid locations before saving');
+      }
+
+      await updateTeacherProfile(token, {
+        locationAvailability: {
+          preferredLocations: validLocations,
+        } as any,
+      });
+
+      return true;
+    } catch (err: any) {
+      console.error('Error saving locations:', err);
+
+      if (err.message === 'Unauthorized') {
+        dispatch(logout());
+        Alert.alert('Session Expired', 'Please login again');
+      } else if (err.message === 'Forbidden') {
+        Alert.alert('Access Denied', 'You do not have permission to update locations');
+      } else if (err.message?.includes('Validation')) {
+        Alert.alert('Validation Error', err.message);
+      } else if (err.message?.includes('Server')) {
+        Alert.alert('Server Error', 'Please try again later');
+      } else {
+        Alert.alert('Error', err.message || 'Failed to save locations');
+      }
+
+      return false;
+    } finally {
+      setSavingLocations(false);
+    }
+  }, [token, dispatch]);
 
   const handleToggleVacationMode = async () => {
     try {
@@ -441,13 +497,19 @@ const TeacherProfileScreen: React.FC = () => {
       {/* Preferred Service Locations */}
       <Card variant="outlined" margin="medium" style={styles.sectionCard}>
         <View style={styles.sectionHeader}>
-          <Ionicons name="map-outline" size={20} color={theme.colors.primary} />
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-            Service Areas
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="map-outline" size={20} color={theme.colors.primary} />
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+              Service Areas
+            </Text>
+            {savingLocations && (
+              <ActivityIndicator size="small" color={theme.colors.primary} />
+            )}
+          </View>
           <TouchableOpacity
             style={[styles.addLocationBtn, { backgroundColor: theme.colors.primary + '18' }]}
             onPress={() => setShowAddLocation(v => !v)}
+            disabled={savingLocations}
           >
             <Ionicons
               name={showAddLocation ? 'close-outline' : 'add-outline'}
@@ -473,7 +535,29 @@ const TeacherProfileScreen: React.FC = () => {
               </Text>
             </View>
             <TouchableOpacity
-              onPress={() => setPreferredLocations(prev => prev.filter((_, i) => i !== idx))}
+              onPress={() => {
+                Alert.alert(
+                  'Remove Service Area',
+                  `Are you sure you want to remove ${loc.area}, ${loc.city}?`,
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Remove',
+                      style: 'destructive',
+                      onPress: async () => {
+                        const updatedLocations = preferredLocations.filter((_, i) => i !== idx);
+                        setPreferredLocations(updatedLocations);
+                        const success = await persistPreferredLocations(updatedLocations);
+                        if (!success) {
+                          // Revert on failure
+                          setPreferredLocations(preferredLocations);
+                        }
+                      },
+                    },
+                  ]
+                );
+              }}
+              disabled={savingLocations}
             >
               <Ionicons name="close-circle-outline" size={18} color={theme.colors.error} />
             </TouchableOpacity>
@@ -528,12 +612,19 @@ const TeacherProfileScreen: React.FC = () => {
               ))}
             </View>
             <TouchableOpacity
-              style={[styles.saveLocationBtn, { backgroundColor: theme.colors.primary }]}
-              onPress={() => {
+              style={[
+                styles.saveLocationBtn,
+                { backgroundColor: theme.colors.primary },
+                savingLocations && { opacity: 0.6 }
+              ]}
+              onPress={async () => {
+                // Validation
                 if (!newLocationArea.trim() || !newLocationCity.trim() || !newLocationCoords) {
                   Alert.alert('Incomplete', 'Please fill area, city and pin a location on the map.');
                   return;
                 }
+
+                // Check for duplicates
                 const areaKey = `${newLocationArea.trim().toLowerCase()}|${newLocationCity.trim().toLowerCase()}`;
                 const isDuplicate = preferredLocations.some(
                   loc => `${loc.area.trim().toLowerCase()}|${loc.city.trim().toLowerCase()}` === areaKey
@@ -542,6 +633,8 @@ const TeacherProfileScreen: React.FC = () => {
                   Alert.alert('Duplicate', 'This area and city combination already exists.');
                   return;
                 }
+
+                // Create new location object
                 const newLoc: TeacherPreferredLocation = {
                   area: newLocationArea.trim(),
                   city: newLocationCity.trim(),
@@ -549,15 +642,34 @@ const TeacherProfileScreen: React.FC = () => {
                   longitude: newLocationCoords.longitude,
                   radiusKm: newLocationRadius,
                 };
-                setPreferredLocations(prev => [...prev, newLoc]);
-                setNewLocationArea('');
-                setNewLocationCity('');
-                setNewLocationCoords(null);
-                setNewLocationRadius(5);
-                setShowAddLocation(false);
+
+                // Update local state optimistically
+                const updatedLocations = [...preferredLocations, newLoc];
+                setPreferredLocations(updatedLocations);
+
+                // Persist to backend
+                const success = await persistPreferredLocations(updatedLocations);
+
+                if (success) {
+                  // Clear form on success
+                  setNewLocationArea('');
+                  setNewLocationCity('');
+                  setNewLocationCoords(null);
+                  setNewLocationRadius(5);
+                  setShowAddLocation(false);
+                  Alert.alert('Success', 'Service area added successfully');
+                } else {
+                  // Revert local state on failure
+                  setPreferredLocations(preferredLocations);
+                }
               }}
+              disabled={savingLocations}
             >
-              <Text style={styles.saveLocationBtnText}>Save Area</Text>
+              {savingLocations ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.saveLocationBtnText}>Save Area</Text>
+              )}
             </TouchableOpacity>
           </View>
         )}

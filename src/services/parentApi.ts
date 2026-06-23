@@ -179,3 +179,36 @@ export const cancelDemo = async (token: string, demoId: string): Promise<void> =
   });
   if (!response.ok) throw new Error('Failed to cancel demo');
 };
+
+// Profile Update
+export interface UpdateParentProfilePayload {
+  firstName: string;
+  lastName: string;
+  email: string;
+  address?: {
+    city?: string;
+    state?: string;
+  };
+}
+
+export const updateParentProfile = async (
+  token: string,
+  payload: UpdateParentProfilePayload
+): Promise<ParentProfile> => {
+  const response = await fetch(`${API_BASE_URL}/parents/profile`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody?.message || `Failed to update profile (${response.status})`);
+  }
+
+  const data = await response.json();
+  return data.data || data;
+};

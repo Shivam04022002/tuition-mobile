@@ -7,6 +7,7 @@ const API_BASE_URL = apiConfig.baseURL;
 export interface PlanLimits {
   applicationsPerMonth: number;   // -1 = unlimited
   leadUnlocksPerMonth: number;    // -1 = unlimited
+  creditsPerMonth: number;          // -1 = unlimited
   profileVisibilityBoost: number;
   analyticsAccess: 'none' | 'basic' | 'advanced' | 'full';
   priorityPlacement: boolean;

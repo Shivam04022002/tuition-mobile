@@ -23,21 +23,14 @@ const isDevelopment = process.env.NODE_ENV === 'development' || (typeof __DEV__ 
 // API Base URL configuration
 // Priority: 1. Environment variable 2. Production default 3. Development default
 const getApiBaseUrl = (): string => {
-  // In production, use the production API URL
+  // Production domain — https://hometuitionapp.com
   if (isProduction) {
     return 'https://hometuitionapp.com/api';
   }
   
-  // ==========================================
-  // PHYSICAL DEVICE CONFIGURATION
-  // ==========================================
-  // For physical Android/iOS devices, use your PC's LAN IP
-  // Find your IP: Windows (ipconfig), Mac/Linux (ifconfig)
-  // Current LAN IP: 10.149.172.60
-  const DEV_LAN_IP = '10.167.235.60'; // ← UPDATE THIS with your PC's LAN IP
-  
-  // Uncomment below for physical device testing
-  return `http://${DEV_LAN_IP}:5000/api`;
+  // Development / non-production builds also use the domain
+  // Fallback IP: http://15.206.92.25:5000/api
+  return 'https://hometuitionapp.com/api';
   
   // ==========================================
   // EMULATOR/SIMULATOR URLs (Keep for reference)
@@ -57,19 +50,12 @@ const getSocketUrl = (): string => {
     return 'https://hometuitionapp.com';
   }
   
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:5000';
-  }
-  
-  return 'http://localhost:5000';
+  return 'https://hometuitionapp.com';
 };
 
 // CDN URL
 const getCdnUrl = (): string => {
-  if (isProduction) {
-    return 'https://hometuitionapp.com';
-  }
-  return 'http://localhost:5000';
+  return 'https://hometuitionapp.com';
 };
 
 // API Configuration Object

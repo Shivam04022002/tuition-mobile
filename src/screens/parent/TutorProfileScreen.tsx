@@ -26,11 +26,11 @@ import {
   getTutorProfile,
   getTutorGallery,
   getTutorStats,
-  shortlistTutor,
   TutorProfileData,
   TutorGalleryData,
   TutorStatsData,
 } from '../../services/tutorProfileApi';
+import { createShortlist, checkIsShortlisted } from '../../services/shortlistApi';
 import { useReviews } from '../../hooks/useReviews';
 import RatingBreakdown from '../../components/parent/RatingBreakdown';
 import ReviewCard from '../../components/parent/ReviewCard';
@@ -98,6 +98,7 @@ const TutorProfileScreen: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shortlisted, setShortlisted] = useState(false);
+  const [shortlistId, setShortlistId] = useState<string | null>(null);
   const [shortlistLoading, setShortlistLoading] = useState(false);
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
   const [editingReview, setEditingReview] = useState<any>(null);
@@ -164,24 +165,44 @@ const TutorProfileScreen: React.FC = () => {
   }, [profile, profileId]);
 
   const handleShortlist = useCallback(async () => {
-    if (!token || !profileId || shortlistLoading) return;
-    trackEvent('Tutor Shortlisted', { tutorId: profileId });
+    if (!token || !profile || shortlistLoading) return;
+
+    // Determine correct IDs
+    // teacherId should be the User._id (teacher's user account)
+    // teacherProfileId should be the TeacherProfile._id (profile document)
+    const teacherId = profile.userId || profileId;
+    const teacherProfileId = profileId;
+
+    if (!teacherId) {
+      Alert.alert('Error', 'Unable to identify tutor.');
+      return;
+    }
+
+    trackEvent('Tutor Shortlisted', { tutorId: teacherId });
     setShortlistLoading(true);
+
     try {
-      await shortlistTutor(token, profileId, profileId);
+      const response = await createShortlist(token, {
+        teacherId,
+        teacherProfileId,
+        notes: undefined, // Optional: could add notes support later
+      });
+
       setShortlisted(true);
-      Alert.alert('Shortlisted!', 'Tutor has been added to your shortlist.');
+      setShortlistId(response.data.shortlist._id);
+      Alert.alert('Saved!', 'Tutor has been added to your saved list.');
     } catch (err: any) {
-      if (err?.message?.includes('already shortlisted') || err?.message?.includes('409')) {
+      if (err?.status === 409 || err?.message?.includes('already shortlisted')) {
         setShortlisted(true);
-        Alert.alert('Already Shortlisted', 'This tutor is already in your shortlist.');
+        setShortlistId(err?.shortlistId || null);
+        Alert.alert('Already Saved', 'This tutor is already in your saved list.');
       } else {
-        Alert.alert('Error', err?.message || 'Failed to shortlist tutor.');
+        Alert.alert('Error', err?.message || 'Failed to save tutor. Please try again.');
       }
     } finally {
       setShortlistLoading(false);
     }
-  }, [token, profileId, shortlistLoading]);
+  }, [token, profile, profileId, shortlistLoading]);
 
   const handleOpenContactModal = useCallback((type: 'call' | 'whatsapp' | 'message') => {
     setContactModalType(type);
@@ -588,7 +609,7 @@ const TutorProfileScreen: React.FC = () => {
             color={shortlisted ? colors.error : colors.primary}
           />
           <Text style={[styles.actionBtnText, styles.secondaryBtnText]}>
-            {shortlisted ? 'Saved' : 'Shortlist'}
+            {shortlisted ? 'Saved' : 'Save Tutor'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.actionBtn, styles.outlineBtn]} onPress={handleOpenDemoModal}>

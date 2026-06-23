@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,17 @@ import {
   Image,
   Dimensions,
   RefreshControl,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
+import { useAppSelector } from '../../redux/store';
+import { selectAuthToken } from '../../redux/slices/authSlice';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
+import { createShortlist, removeShortlist, checkIsShortlisted } from '../../services/shortlistApi';
 
 const { width } = Dimensions.get('window');
 
@@ -36,7 +41,8 @@ interface Tutor {
   languages: string[];
   about: string;
   achievements: string[];
-  shortlisted: boolean;
+  // Shortlist-related fields (not part of Tutor interface, managed separately)
+  userId?: string; // The teacher's User._id for shortlist API
 }
 
 interface FilterOptions {
@@ -51,6 +57,7 @@ interface FilterOptions {
 const TutorListingScreen: React.FC = () => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const token = useAppSelector(selectAuthToken);
   
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [filteredTutors, setFilteredTutors] = useState<Tutor[]>([]);
@@ -66,6 +73,8 @@ const TutorListingScreen: React.FC = () => {
     teachingMode: 'all',
   });
   const [refreshing, setRefreshing] = useState(false);
+  const [savingTutorId, setSavingTutorId] = useState<string | null>(null);
+  const [savedTutors, setSavedTutors] = useState<Record<string, string>>({}); // tutorId -> shortlistId
 
   // Mock data
   const mockTutors: Tutor[] = [
@@ -87,7 +96,7 @@ const TutorListingScreen: React.FC = () => {
       languages: ['English', 'Hindi'],
       about: 'Experienced tutor with focus on conceptual understanding...',
       achievements: ['Top Rated', 'Fast Responder'],
-      shortlisted: false,
+      userId: 'teacher_user_id_1',
     },
     {
       id: '2',
@@ -147,7 +156,7 @@ const TutorListingScreen: React.FC = () => {
       languages: ['English', 'Hindi'],
       about: 'Young and energetic tutor making learning fun...',
       achievements: ['New Tutor'],
-      shortlisted: false,
+      userId: 'teacher_user_id_4',
     },
   ];
 
@@ -237,12 +246,75 @@ const TutorListingScreen: React.FC = () => {
     setFilteredTutors(filtered);
   };
 
-  const toggleShortlist = (tutorId: string) => {
-    setTutors(prevTutors =>
-      prevTutors.map(tutor =>
-        tutor.id === tutorId ? { ...tutor, shortlisted: !tutor.shortlisted } : tutor
-      )
-    );
+  // Check if tutors are saved (on mount and refresh)
+  const checkSavedStatus = useCallback(async () => {
+    if (!token) return;
+    const saved: Record<string, string> = {};
+    for (const tutor of tutors) {
+      if (tutor.userId) {
+        try {
+          const { isShortlisted, shortlistId } = await checkIsShortlisted(token, tutor.userId);
+          if (isShortlisted && shortlistId) {
+            saved[tutor.id] = shortlistId;
+          }
+        } catch {
+          // Silently fail for individual tutors
+        }
+      }
+    }
+    setSavedTutors(saved);
+  }, [token, tutors]);
+
+  useEffect(() => {
+    checkSavedStatus();
+  }, [checkSavedStatus]);
+
+  const handleToggleSave = async (tutor: Tutor) => {
+    if (!token) {
+      Alert.alert('Login Required', 'Please login to save tutors.');
+      return;
+    }
+
+    if (!tutor.userId) {
+      Alert.alert('Error', 'Unable to identify tutor.');
+      return;
+    }
+
+    setSavingTutorId(tutor.id);
+
+    try {
+      if (savedTutors[tutor.id]) {
+        // Already saved - remove from shortlist
+        await removeShortlist(token, savedTutors[tutor.id]);
+        setSavedTutors(prev => {
+          const updated = { ...prev };
+          delete updated[tutor.id];
+          return updated;
+        });
+      } else {
+        // Not saved - add to shortlist
+        const response = await createShortlist(token, {
+          teacherId: tutor.userId,
+          teacherProfileId: tutor.id,
+        });
+        setSavedTutors(prev => ({
+          ...prev,
+          [tutor.id]: response.data.shortlist._id,
+        }));
+      }
+    } catch (err: any) {
+      if (err?.status === 409) {
+        // Already exists - mark as saved
+        setSavedTutors(prev => ({
+          ...prev,
+          [tutor.id]: err?.shortlistId || 'unknown',
+        }));
+      } else {
+        Alert.alert('Error', err?.message || 'Failed to update saved status.');
+      }
+    } finally {
+      setSavingTutorId(null);
+    }
   };
 
   const renderTutorCard = ({ item, index }: { item: Tutor; index: number }) => (
@@ -295,14 +367,19 @@ const TutorListingScreen: React.FC = () => {
           </View>
         </View>
         
-        {/* Shortlist Button */}
+        {/* Save Button */}
         <TouchableOpacity
           style={styles.shortlistButton}
-          onPress={() => toggleShortlist(item.id)}
+          onPress={() => handleToggleSave(item)}
+          disabled={savingTutorId === item.id}
         >
-          <Text style={[styles.shortlistIcon, { color: item.shortlisted ? theme.colors.accent : theme.colors.textLight }]}>
-            {item.shortlisted ? '❤️' : '🤍'}
-          </Text>
+          {savingTutorId === item.id ? (
+            <ActivityIndicator size="small" color={theme.colors.accent} />
+          ) : (
+            <Text style={[styles.shortlistIcon, { color: savedTutors[item.id] ? theme.colors.accent : theme.colors.textLight }]}>
+              {savedTutors[item.id] ? '❤️' : '🤍'}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
 

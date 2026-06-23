@@ -47,7 +47,14 @@ const authSlice = createSlice({
       state.isLoggedIn = !!action.payload;
       if (action.payload) {
         state.role = action.payload.role;
-        state.onboardingCompleted = action.payload.onboardingCompleted ?? false;
+        // Admin/teacher/staff always bypass onboarding regardless of DB value.
+        // Parents respect the DB value (they have a real onboarding flow).
+        const bypassRoles: UserRole[] = ['admin', 'teacher', 'staff'];
+        if (bypassRoles.includes(action.payload.role)) {
+          state.onboardingCompleted = true;
+        } else {
+          state.onboardingCompleted = action.payload.onboardingCompleted ?? true;
+        }
       }
     },
     setToken: (state, action: PayloadAction<string | null>) => {
@@ -64,6 +71,7 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.role = null;
+      state.onboardingCompleted = false;
       state.error = null;
     },
     clearError: (state) => {
@@ -92,3 +100,4 @@ export const selectAuthUser = (state: { auth: AuthState }) => state.auth.user;
 export const selectAuthToken = (state: { auth: AuthState }) => state.auth.token;
 export const selectAuthRole = (state: { auth: AuthState }) => state.auth.role;
 export const selectAuthError = (state: { auth: AuthState }) => state.auth.error;
+export const selectAuthOnboardingCompleted = (state: { auth: AuthState }) => state.auth.onboardingCompleted;

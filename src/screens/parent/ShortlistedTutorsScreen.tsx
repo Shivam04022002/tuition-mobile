@@ -7,49 +7,95 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppSelector } from '../../redux/store';
 import { selectAuthToken } from '../../redux/slices/authSlice';
-import { useApplications } from '../../hooks/useApplications';
+import { useShortlists } from '../../hooks/useShortlists';
 import { ProfileAvatar, PrimaryButton } from '../../components/ui';
 import { colors } from '../../theme/colors';
 import { shadows } from '../../theme/shadows';
-import type { ParentApplication } from '../../services/applicationApi';
+import type { Shortlist } from '../../services/shortlistApi';
 
 const ShortlistedTutorsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const token = useAppSelector(selectAuthToken);
 
   const {
-    applications,
+    shortlists,
+    total,
     isLoading,
     isRefreshing,
+    isRemoving,
+    isMarkingContacted,
     error,
+    actionError,
     refresh,
     retry,
-  } = useApplications(token);
+    removeFromShortlist,
+    markContacted,
+  } = useShortlists(token);
 
-  const shortlisted = applications.filter(a => a.status === 'shortlisted');
-
-  const handleViewApplication = useCallback((app: ParentApplication) => {
-    navigation.navigate('ApplicationDetail', {
-      applicationId: app.applicationId || app._id,
+  const handleViewProfile = useCallback((shortlist: Shortlist) => {
+    navigation.navigate('TutorProfile', {
+      profileId: shortlist.teacherProfileId?._id,
     });
   }, [navigation]);
 
-  const renderItem = useCallback(({ item }: { item: ParentApplication }) => {
-    const name = item.teacherProfileId?.basicDetails?.fullName || 'Unknown Tutor';
-    const photo = item.teacherProfileId?.basicDetails?.profilePhoto || '';
-    const subjects = item.teacherProfileId?.teachingDetails?.subjects || [];
-    const experience = item.teacherProfileId?.pricingRevenue?.experienceYears || 0;
-    const rate = item.teacherProfileId?.pricingRevenue?.hourlyRate || 0;
-    const rating = item.teacherProfileId?.stats?.averageRating || 0;
-    const shortlistedAt = item.shortlistedAt
-      ? new Date(item.shortlistedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  const handleRemove = useCallback((shortlist: Shortlist) => {
+    Alert.alert(
+      'Remove Tutor?',
+      `Remove ${shortlist.teacherProfileId?.basicDetails?.fullName || 'this tutor'} from your saved list?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            const success = await removeFromShortlist(shortlist._id);
+            if (!success) {
+              Alert.alert('Error', 'Failed to remove tutor. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  }, [removeFromShortlist]);
+
+  const handleMarkContacted = useCallback((shortlist: Shortlist) => {
+    Alert.alert(
+      'Mark as Contacted',
+      'How did you contact this tutor?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Call',
+          onPress: () => markContacted(shortlist._id, 'call'),
+        },
+        {
+          text: 'WhatsApp',
+          onPress: () => markContacted(shortlist._id, 'whatsapp'),
+        },
+      ]
+    );
+  }, [markContacted]);
+
+  const renderItem = useCallback(({ item }: { item: Shortlist }) => {
+    const profile = item.teacherProfileId;
+    const name = profile?.basicDetails?.fullName || 'Unknown Tutor';
+    const photo = profile?.basicDetails?.profilePhoto || '';
+    const subjects = profile?.teachingDetails?.subjects || [];
+    const experience = profile?.teachingDetails?.experienceYears || 0;
+    const rate = profile?.pricingRevenue?.hourlyRate || 0;
+    const rating = profile?.stats?.averageRating || 0;
+    const savedAt = item.createdAt
+      ? new Date(item.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
       : '';
+    const isCurrentlyRemoving = isRemoving === item._id;
+    const isCurrentlyMarking = isMarkingContacted === item._id;
 
     return (
       <View style={styles.card}>
@@ -59,17 +105,24 @@ const ShortlistedTutorsScreen: React.FC = () => {
             <Text style={styles.tutorName}>{name}</Text>
             <View style={styles.ratingRow}>
               <Ionicons name="star" size={13} color="#F59E0B" />
-              <Text style={styles.ratingText}>{Number(rating).toFixed(1)}</Text>
+              <Text style={styles.ratingText}>{Number(rating || 0).toFixed(1)}</Text>
               <Text style={styles.expText}>• {experience} yrs exp</Text>
             </View>
             {rate > 0 && (
               <Text style={styles.rateText}>₹{rate}/hr</Text>
             )}
           </View>
-          <View style={styles.shortlistedBadge}>
-            <Ionicons name="bookmark" size={14} color={colors.primary} />
-            <Text style={styles.shortlistedText}>Shortlisted</Text>
-          </View>
+          <TouchableOpacity
+            style={styles.removeButton}
+            onPress={() => handleRemove(item)}
+            disabled={isCurrentlyRemoving}
+          >
+            {isCurrentlyRemoving ? (
+              <ActivityIndicator size="small" color={colors.error} />
+            ) : (
+              <Ionicons name="trash-outline" size={20} color={colors.error} />
+            )}
+          </TouchableOpacity>
         </View>
 
         {subjects.length > 0 && (
@@ -82,19 +135,55 @@ const ShortlistedTutorsScreen: React.FC = () => {
           </View>
         )}
 
-        {shortlistedAt ? (
-          <Text style={styles.dateText}>Shortlisted on {shortlistedAt}</Text>
+        {item.notes ? (
+          <View style={styles.notesContainer}>
+            <Ionicons name="document-text-outline" size={14} color={colors.textSecondary} />
+            <Text style={styles.notesText} numberOfLines={2}>{item.notes}</Text>
+          </View>
         ) : null}
 
-        <PrimaryButton
-          label="View Application"
-          onPress={() => handleViewApplication(item)}
-          variant="outline"
-          size="sm"
-        />
+        {item.matchScore && item.matchScore > 0 ? (
+          <View style={styles.matchBadge}>
+            <Ionicons name="fitness" size={12} color={colors.success} />
+            <Text style={styles.matchText}>{item.matchScore}% Match</Text>
+          </View>
+        ) : null}
+
+        {savedAt ? (
+          <Text style={styles.dateText}>Saved on {savedAt}</Text>
+        ) : null}
+
+        {item.isContacted ? (
+          <View style={styles.contactedBadge}>
+            <Ionicons name="checkmark-circle" size={14} color={colors.success} />
+            <Text style={styles.contactedText}>
+              Contacted {item.contactMethod ? `via ${item.contactMethod}` : ''}
+            </Text>
+          </View>
+        ) : null}
+
+        <View style={styles.actionRow}>
+          <PrimaryButton
+            label="View Profile"
+            onPress={() => handleViewProfile(item)}
+            variant="outline"
+            size="sm"
+            style={styles.actionButton}
+          />
+          {!item.isContacted && (
+            <PrimaryButton
+              label={isCurrentlyMarking ? "Marking..." : "Mark Contacted"}
+              onPress={() => handleMarkContacted(item)}
+              variant="secondary"
+              size="sm"
+              disabled={isCurrentlyMarking}
+              style={styles.actionButton}
+            />
+          )}
+        </View>
       </View>
     );
-  }, [handleViewApplication]);
+  }, [handleRemove, handleViewProfile, handleMarkContacted, isRemoving, isMarkingContacted]);
 
   if (isLoading) {
     return (
@@ -143,7 +232,7 @@ const ShortlistedTutorsScreen: React.FC = () => {
       </View>
 
       <FlatList
-        data={shortlisted}
+        data={shortlists}
         keyExtractor={item => item._id}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
@@ -154,8 +243,14 @@ const ShortlistedTutorsScreen: React.FC = () => {
         ListEmptyComponent={
           <View style={styles.center}>
             <Ionicons name="bookmark-outline" size={56} color={colors.textTertiary} />
-            <Text style={styles.emptyTitle}>No shortlisted tutors</Text>
-            <Text style={styles.emptySubtitle}>Shortlist tutors from applications to see them here</Text>
+            <Text style={styles.emptyTitle}>No saved tutors</Text>
+            <Text style={styles.emptySubtitle}>Save tutors from their profiles to see them here</Text>
+            <PrimaryButton
+              label="Browse Tutors"
+              onPress={() => navigation.navigate('TutorSearch')}
+              variant="outline"
+              style={styles.browseButton}
+            />
           </View>
         }
       />
@@ -192,16 +287,53 @@ const styles = StyleSheet.create({
   ratingText: { fontSize: 13, fontWeight: '700', color: colors.text },
   expText: { fontSize: 12, color: colors.textSecondary },
   rateText: { fontSize: 12, color: colors.textSecondary },
-  shortlistedBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
-    backgroundColor: colors.primary + '15',
+  removeButton: {
+    padding: 8,
+    borderRadius: 8,
   },
-  shortlistedText: { fontSize: 11, fontWeight: '700', color: colors.primary },
   subjectRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
   chip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: colors.primary + '12' },
   chipText: { fontSize: 11, fontWeight: '600', color: colors.primary },
-  dateText: { fontSize: 12, color: colors.textSecondary, marginBottom: 12 },
+  notesContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    marginBottom: 10,
+    padding: 10,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+  },
+  notesText: { fontSize: 12, color: colors.textSecondary, flex: 1 },
+  matchBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 10,
+  },
+  matchText: { fontSize: 12, fontWeight: '600', color: colors.success },
+  dateText: { fontSize: 12, color: colors.textSecondary, marginBottom: 10 },
+  contactedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: colors.success + '15',
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+  },
+  contactedText: { fontSize: 11, fontWeight: '600', color: colors.success },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  actionButton: {
+    flex: 1,
+  },
+  browseButton: {
+    marginTop: 16,
+  },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   errorText: { fontSize: 15, color: colors.error, textAlign: 'center', marginVertical: 12 },
   retryBtn: { marginTop: 8 },
