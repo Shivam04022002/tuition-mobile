@@ -21,6 +21,7 @@ import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import MultiSelectChip from '../../components/common/MultiSelectChip';
+import DateOfBirthPicker from '../../components/common/DateOfBirthPicker';
 import { apiConfig } from '../../config/api';
 
 type AuthStackParamList = {
@@ -144,6 +145,7 @@ const TeacherRegistrationScreen: React.FC = () => {
     if (!formData.city.trim()) newErrors.city = 'City is required';
     if (!formData.pincode.trim()) newErrors.pincode = 'Pincode is required';
     else if (!/^\d{6}$/.test(formData.pincode)) newErrors.pincode = 'Pincode must be 6 digits';
+    if (formData.dob && !/^\d{4}-\d{2}-\d{2}$/.test(formData.dob)) newErrors.dob = 'Please select a complete, valid date of birth';
     if (!formData.qualification.trim()) newErrors.qualification = 'Qualification is required';
     if (!formData.bio.trim()) newErrors.bio = 'Bio is required';
     if (!formData.teachingExperience) newErrors.teachingExperience = 'Teaching experience is required';
@@ -388,7 +390,7 @@ const TeacherRegistrationScreen: React.FC = () => {
               <Input label="Pincode" placeholder="6 digits" value={formData.pincode} onChangeText={(text) => updateField('pincode', text.replace(/[^0-9]/g, ''))} keyboardType="numeric" maxLength={6} error={errors.pincode} required />
             </View>
           </View>
-          <Input label="Date of Birth (Optional)" placeholder="DD/MM/YYYY" value={formData.dob} onChangeText={(text) => updateField('dob', text)} />
+          <DateOfBirthPicker value={formData.dob} onChange={(iso) => updateField('dob', iso)} error={errors.dob} />
           <Text style={[styles.fieldLabel, { color: theme.colors.text }]}>Profile Picture (Optional)</Text>
           <View style={styles.imageUploadContainer}>
             {formData.profilePicture ? (
