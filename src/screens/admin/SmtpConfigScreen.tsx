@@ -58,6 +58,7 @@ const SmtpConfigScreen: React.FC = () => {
   const [hasSavedPassword, setHasSavedPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [testEmail, setTestEmail] = useState('');
+  const [pendingClear, setPendingClear] = useState(false);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -118,6 +119,7 @@ const SmtpConfigScreen: React.FC = () => {
       });
       setServices(config.services || []);
     }
+    setPendingClear(false);
   };
 
   const toggleService = (key: string) => {
@@ -137,6 +139,7 @@ const SmtpConfigScreen: React.FC = () => {
           onPress: () => {
             setForm({ ...EMPTY_FORM, isActive: form.isActive });
             setHasSavedPassword(false);
+            setPendingClear(true);
           },
         },
       ]
@@ -145,15 +148,24 @@ const SmtpConfigScreen: React.FC = () => {
 
   const handleSave = async () => {
     if (!token) return;
-    if (!form.fromEmail || !form.fromName || !form.host || !form.port) {
+
+    // If the admin cleared the form and hasn't typed anything new, treat
+    // Save as "confirm the clear" — wipe the saved config instead of
+    // rejecting it for missing required fields.
+    const isFullyBlank = !form.fromEmail && !form.fromName && !form.host && !form.username && !form.password;
+    const isClearing = pendingClear && isFullyBlank;
+
+    if (!isClearing && (!form.fromEmail || !form.fromName || !form.host || !form.port)) {
       Alert.alert('Missing fields', 'From Email, From Name, SMTP Host, and SMTP Port are required.');
       return;
     }
+
     setIsSaving(true);
     try {
       const res = await smtpApi.updateSmtpConfig(token, {
         ...form,
         services: services.map(s => ({ key: s.key, enabled: s.enabled })),
+        ...(isClearing ? { clear: true } : {}),
       });
       if (res.success) {
         setConfig(res.data);
@@ -161,7 +173,8 @@ const SmtpConfigScreen: React.FC = () => {
         setServices(res.data.services || []);
         setForm(prev => ({ ...prev, password: '' }));
         setIsEditing(false);
-        Alert.alert('Saved', 'SMTP configuration saved successfully');
+        setPendingClear(false);
+        Alert.alert('Saved', isClearing ? 'SMTP configuration cleared' : 'SMTP configuration saved successfully');
       }
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to save SMTP configuration');

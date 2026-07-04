@@ -39,6 +39,7 @@ export interface SmtpConfigInput {
   username: string;
   password?: string; // omit/blank to keep the currently saved password
   services?: Array<{ key: string; enabled: boolean }>;
+  clear?: boolean; // wipes the saved config back to unconfigured, skips validation
 }
 
 export interface SmtpConfigResponse {
