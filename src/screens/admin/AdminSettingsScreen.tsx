@@ -80,6 +80,13 @@ const AdminSettingsScreen: React.FC = () => {
           iconColor: colors.secondary,
           onPress: () => navigation.navigate('NotificationTemplates'),
         },
+        {
+          icon: 'server-outline',
+          label: 'SMTP Configuration',
+          subtitle: 'Configure SMTP host, credentials & sender email',
+          iconColor: colors.info,
+          onPress: () => navigation.navigate('SmtpConfig'),
+        },
       ],
     },
     {

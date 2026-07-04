@@ -148,7 +148,9 @@ export const getCurrentUser = async (token: string): Promise<LoginResponse['user
 };
 
 // Send OTP
-export const sendOTP = async (phoneNumber: string): Promise<{ success: boolean; message: string; userExists?: boolean }> => {
+export const sendOTP = async (
+  phoneNumber: string
+): Promise<{ success: boolean; message: string; userExists?: boolean; mailServiceDown?: boolean }> => {
   const response = await fetch(`${API_BASE_URL}/auth/send-otp`, {
     method: 'POST',
     headers: {
@@ -180,6 +182,26 @@ export const verifyOTP = async (data: { phoneNumber: string; otp: string; role?:
 
   if (!response.ok) {
     throw new Error(result.message || 'OTP verification failed');
+  }
+
+  return result;
+};
+
+// Continue without OTP — only succeeds while the server's mail service for
+// OTP verification is actually down (see sendOTP's mailServiceDown flag).
+export const continueWithoutOtp = async (data: { phoneNumber: string; role?: string }): Promise<LoginResponse> => {
+  const response = await fetch(`${API_BASE_URL}/auth/continue-without-otp`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.message || 'Failed to continue without OTP');
   }
 
   return result;

@@ -22,7 +22,7 @@ import {
   setRole as setUserRole,
 } from '../../redux/slices/userSlice';
 import { useTheme } from '../../theme';
-import { login, sendOTP, verifyOTP } from '../../services/authApi';
+import { login, sendOTP, verifyOTP, continueWithoutOtp, LoginResponse } from '../../services/authApi';
 
 type AuthStackParamList = {
   Login: undefined;
@@ -57,6 +57,7 @@ const LoginScreen: React.FC = () => {
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [mailServiceDown, setMailServiceDown] = useState(false);
 
   // Common state
   const [isLoading, setIsLoading] = useState(false);
@@ -161,9 +162,16 @@ const LoginScreen: React.FC = () => {
     if (!validateOTPLogin()) return;
 
     setIsLoading(true);
+    setMailServiceDown(false);
 
     try {
-      await sendOTP(phoneNumber);
+      const response = await sendOTP(phoneNumber);
+
+      if (response.mailServiceDown) {
+        setMailServiceDown(true);
+        return;
+      }
+
       setOtpSent(true);
       setCountdown(60);
 
@@ -185,6 +193,31 @@ const LoginScreen: React.FC = () => {
     }
   }, [phoneNumber, validateOTPLogin]);
 
+  // Shared Redux dispatch for any successful phone-login response, whether
+  // it came from real OTP verification or the "Continue without OTP" bypass.
+  const applyLoginResponse = useCallback((response: LoginResponse) => {
+    dispatch(setToken(response.token));
+    dispatch(setUser({
+      id: response.user.id,
+      email: response.user.email,
+      phoneNumber: response.user.phoneNumber,
+      role: response.user.role,
+      profile: response.user.profile,
+      profileCompleted: response.user.profileCompleted,
+      onboardingCompleted: response.user.onboardingCompleted,
+    }));
+    dispatch(setUserRole(response.user.role));
+    dispatch(setProfile({
+      id: response.user.id,
+      firstName: response.user.profile?.firstName ?? '',
+      lastName:  response.user.profile?.lastName  ?? '',
+      email:     response.user.email,
+      phoneNumber: response.user.phoneNumber,
+      profileImage: response.user.profile?.profileImage,
+    }));
+    dispatch(setOnboardingCompleted(response.user.onboardingCompleted ?? true));
+  }, [dispatch]);
+
   // Verify OTP Handler
   const handleVerifyOTP = useCallback(async () => {
     if (!validateOTPLogin()) return;
@@ -193,47 +226,11 @@ const LoginScreen: React.FC = () => {
     dispatch(setLoading(true));
 
     try {
-      console.log('📱 [OTP] Sending verify request...');
       const response = await verifyOTP({
         phoneNumber,
         otp,
       });
-
-      console.log('✅ [OTP] Verify response:', JSON.stringify(response, null, 2));
-      console.log('👤 [OTP] User role:', response.user?.role);
-      console.log('🔑 [OTP] Token received:', response.token ? 'Yes' : 'No');
-
-      // Store in Redux
-      dispatch(setToken(response.token));
-      console.log('[OTP DISPATCH 1] setToken fired');
-      dispatch(setUser({
-        id: response.user.id,
-        email: response.user.email,
-        phoneNumber: response.user.phoneNumber,
-        role: response.user.role,
-        profile: response.user.profile,
-        profileCompleted: response.user.profileCompleted,
-        onboardingCompleted: response.user.onboardingCompleted,
-      }));
-      console.log('[OTP DISPATCH 2] setUser fired — authSlice.isLoggedIn=true, authSlice.role=', response.user.role, 'authSlice.onboardingCompleted=', response.user.onboardingCompleted ?? false);
-
-      // Store in Redux — userSlice
-      dispatch(setUserRole(response.user.role));
-      console.log('[OTP DISPATCH 3] setUserRole fired:', response.user.role);
-      dispatch(setProfile({
-        id: response.user.id,
-        firstName: response.user.profile?.firstName ?? '',
-        lastName:  response.user.profile?.lastName  ?? '',
-        email:     response.user.email,
-        phoneNumber: response.user.phoneNumber,
-        profileImage: response.user.profile?.profileImage,
-      }));
-      console.log('[OTP DISPATCH 4] setProfile fired — userSlice.profileCompleted=true');
-      dispatch(setOnboardingCompleted(response.user.onboardingCompleted ?? true));
-      console.log('[OTP DISPATCH 5] setOnboardingCompleted fired:', response.user.onboardingCompleted ?? true);
-
-      console.log('OTP AUTH_STATE FINAL', { role: response.user.role, onboardingCompleted: response.user.onboardingCompleted ?? true });
-
+      applyLoginResponse(response);
     } catch (error: any) {
       dispatch(setError(error.message || 'OTP verification failed'));
       Alert.alert('Verification Failed', error.message || 'Invalid OTP. Please try again.');
@@ -241,7 +238,25 @@ const LoginScreen: React.FC = () => {
       setIsLoading(false);
       dispatch(setLoading(false));
     }
-  }, [phoneNumber, otp, dispatch, validateOTPLogin]);
+  }, [phoneNumber, otp, dispatch, validateOTPLogin, applyLoginResponse]);
+
+  // Continue without OTP — shown when the backend reports mail services are
+  // down; behaves like a successful login without ever collecting a code.
+  const handleContinueWithoutOtp = useCallback(async () => {
+    setIsLoading(true);
+    dispatch(setLoading(true));
+
+    try {
+      const response = await continueWithoutOtp({ phoneNumber });
+      applyLoginResponse(response);
+    } catch (error: any) {
+      dispatch(setError(error.message || 'Failed to continue without OTP'));
+      Alert.alert('Error', error.message || 'Failed to continue without OTP');
+    } finally {
+      setIsLoading(false);
+      dispatch(setLoading(false));
+    }
+  }, [phoneNumber, dispatch, applyLoginResponse]);
 
   // Navigate to Role Selection (Sign Up flow)
   const navigateToSignup = useCallback(() => {
@@ -463,7 +478,30 @@ const LoginScreen: React.FC = () => {
                 </>
               )}
 
-              {!otpSent && (
+              {mailServiceDown && (
+                <View style={[styles.mailDownBanner, { backgroundColor: theme.colors.errorLight }]}>
+                  <Ionicons name="alert-circle-outline" size={18} color={theme.colors.error} />
+                  <Text style={[styles.mailDownText, { color: theme.colors.error }]}>
+                    Mail services are down for a while
+                  </Text>
+                </View>
+              )}
+
+              {mailServiceDown && (
+                <TouchableOpacity
+                  style={[styles.loginButton, { backgroundColor: theme.colors.primary }]}
+                  onPress={handleContinueWithoutOtp}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.loginButtonText}>Continue without OTP</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+
+              {!otpSent && !mailServiceDown && (
                 <TouchableOpacity
                   style={[styles.loginButton, { backgroundColor: theme.colors.primary }]}
                   onPress={handleSendOTP}
@@ -604,6 +642,19 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  mailDownBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  mailDownText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
   },
   resendContainer: {
     alignItems: 'center',
