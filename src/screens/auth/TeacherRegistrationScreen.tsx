@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -22,7 +22,9 @@ import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import MultiSelectChip from '../../components/common/MultiSelectChip';
 import DateOfBirthPicker from '../../components/common/DateOfBirthPicker';
+import SmartAddressPicker from '../../components/common/SmartAddressPicker';
 import { apiConfig } from '../../config/api';
+import * as locationApi from '../../services/locationApi';
 
 type AuthStackParamList = {
   RoleSelection: undefined;
@@ -45,6 +47,8 @@ interface TeacherFormData {
   address: string;
   city: string;
   pincode: string;
+  latitude: number | null;
+  longitude: number | null;
   dob: string;
   profilePicture: string | null;
   // Education & Professional
@@ -90,12 +94,19 @@ const TeacherRegistrationScreen: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [newLocation, setNewLocation] = useState('');
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [locationServiceEnabled, setLocationServiceEnabled] = useState(false);
+
+  useEffect(() => {
+    locationApi.getLocationStatus()
+      .then(res => setLocationServiceEnabled(!!res.data?.enabled))
+      .catch(() => setLocationServiceEnabled(false));
+  }, []);
 
   const [formData, setFormData] = useState<TeacherFormData>({
     // Account Details
     fullName: '', mobileNumber: '', email: '', password: '', confirmPassword: '',
     // Personal Details
-    gender: '', address: '', city: '', pincode: '', dob: '', profilePicture: null,
+    gender: '', address: '', city: '', pincode: '', latitude: null, longitude: null, dob: '', profilePicture: null,
     // Education & Professional
     qualification: '', collegeUniversity: '', certificates: [], bio: '', teachingExperience: '',
     // Teaching Details
@@ -281,6 +292,8 @@ const TeacherRegistrationScreen: React.FC = () => {
           address: formData.address,
           city: formData.city,
           pincode: formData.pincode,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
           dob: formData.dob,
         },
         educationDetails: {
@@ -403,15 +416,36 @@ const TeacherRegistrationScreen: React.FC = () => {
           <Text style={[styles.fieldLabel, { color: theme.colors.text }]}>Gender <Text style={{ color: theme.colors.error }}>*</Text></Text>
           <MultiSelectChip options={GENDER_OPTIONS} selected={[formData.gender]} onSelect={(selected) => updateField('gender', selected[0] || '')} multiple={false} />
           {errors.gender && <Text style={[styles.errorText, { color: theme.colors.error }]}>{errors.gender}</Text>}
-          <Input label="Address" placeholder="Enter your full address" value={formData.address} onChangeText={(text) => updateField('address', text)} multiline numberOfLines={3} error={errors.address} required />
-          <View style={styles.rowInputs}>
-            <View style={styles.halfInput}>
-              <Input label="City" placeholder="City" value={formData.city} onChangeText={(text) => updateField('city', text)} error={errors.city} required />
-            </View>
-            <View style={styles.halfInput}>
-              <Input label="Pincode" placeholder="6 digits" value={formData.pincode} onChangeText={(text) => updateField('pincode', text.replace(/[^0-9]/g, ''))} keyboardType="numeric" maxLength={6} error={errors.pincode} required />
-            </View>
-          </View>
+          {locationServiceEnabled ? (
+            <SmartAddressPicker
+              address={formData.address}
+              city={formData.city}
+              pincode={formData.pincode}
+              onAddressTextChange={(text) => updateField('address', text)}
+              onCityChange={(text) => updateField('city', text)}
+              onPincodeChange={(text) => updateField('pincode', text)}
+              onLocationSelect={(data) => {
+                updateField('address', data.address);
+                updateField('city', data.city);
+                updateField('pincode', data.pincode);
+                updateField('latitude', data.latitude);
+                updateField('longitude', data.longitude);
+              }}
+              errors={{ address: errors.address, city: errors.city, pincode: errors.pincode }}
+            />
+          ) : (
+            <>
+              <Input label="Address" placeholder="Enter your full address" value={formData.address} onChangeText={(text) => updateField('address', text)} multiline numberOfLines={3} error={errors.address} required />
+              <View style={styles.rowInputs}>
+                <View style={styles.halfInput}>
+                  <Input label="City" placeholder="City" value={formData.city} onChangeText={(text) => updateField('city', text)} error={errors.city} required />
+                </View>
+                <View style={styles.halfInput}>
+                  <Input label="Pincode" placeholder="6 digits" value={formData.pincode} onChangeText={(text) => updateField('pincode', text.replace(/[^0-9]/g, ''))} keyboardType="numeric" maxLength={6} error={errors.pincode} required />
+                </View>
+              </View>
+            </>
+          )}
           <DateOfBirthPicker value={formData.dob} onChange={(iso) => updateField('dob', iso)} error={errors.dob} />
           <Text style={[styles.fieldLabel, { color: theme.colors.text }]}>Profile Picture (Optional)</Text>
           <View style={styles.imageUploadContainer}>
