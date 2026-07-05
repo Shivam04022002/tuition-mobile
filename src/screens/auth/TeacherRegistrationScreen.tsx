@@ -86,6 +86,8 @@ const TeacherRegistrationScreen: React.FC = () => {
   const dispatch = useAppDispatch();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [newLocation, setNewLocation] = useState('');
   const [agreeToTerms, setAgreeToTerms] = useState(false);
 
@@ -376,8 +378,28 @@ const TeacherRegistrationScreen: React.FC = () => {
           <Input label="Full Name" placeholder="Enter your full name" value={formData.fullName} onChangeText={(text) => updateField('fullName', text)} error={errors.fullName} required />
           <Input label="Mobile Number" placeholder="Enter 10 digit mobile number" value={formData.mobileNumber} onChangeText={(text) => updateField('mobileNumber', text.replace(/[^0-9]/g, ''))} keyboardType="phone-pad" maxLength={10} error={errors.mobileNumber} required leftIcon="phone" />
           <Input label="Email ID" placeholder="Enter your email address" value={formData.email} onChangeText={(text) => updateField('email', text)} keyboardType="email-address" autoCapitalize="none" error={errors.email} required leftIcon="email" />
-          <Input label="Password" placeholder="Create a password (min 8 chars)" value={formData.password} onChangeText={(text) => updateField('password', text)} secureTextEntry error={errors.password} required />
-          <Input label="Confirm Password" placeholder="Confirm your password" value={formData.confirmPassword} onChangeText={(text) => updateField('confirmPassword', text)} secureTextEntry error={errors.confirmPassword} required />
+          <Input
+            label="Password"
+            placeholder="Create a password (min 8 chars)"
+            value={formData.password}
+            onChangeText={(text) => updateField('password', text)}
+            secureTextEntry={!showPassword}
+            rightIcon={showPassword ? 'eye-off-outline' : 'eye-outline'}
+            onRightIconPress={() => setShowPassword(!showPassword)}
+            error={errors.password}
+            required
+          />
+          <Input
+            label="Confirm Password"
+            placeholder="Confirm your password"
+            value={formData.confirmPassword}
+            onChangeText={(text) => updateField('confirmPassword', text)}
+            secureTextEntry={!showConfirmPassword}
+            rightIcon={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+            onRightIconPress={() => setShowConfirmPassword(!showConfirmPassword)}
+            error={errors.confirmPassword}
+            required
+          />
           <Text style={[styles.fieldLabel, { color: theme.colors.text }]}>Gender <Text style={{ color: theme.colors.error }}>*</Text></Text>
           <MultiSelectChip options={GENDER_OPTIONS} selected={[formData.gender]} onSelect={(selected) => updateField('gender', selected[0] || '')} multiple={false} />
           {errors.gender && <Text style={[styles.errorText, { color: theme.colors.error }]}>{errors.gender}</Text>}

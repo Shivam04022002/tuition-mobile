@@ -37,10 +37,14 @@ const DateOfBirthPicker: React.FC<DateOfBirthPickerProps> = ({
   const theme = useTheme();
   const [openField, setOpenField] = useState<FieldKind>(null);
 
-  const [yearPart, monthPart, dayPart] = value ? value.split('-') : ['', '', ''];
-  const day = dayPart ? parseInt(dayPart, 10) : null;
-  const month = monthPart ? parseInt(monthPart, 10) : null; // 1-12
-  const year = yearPart ? parseInt(yearPart, 10) : null;
+  // Local state is the source of truth for what's displayed — each field
+  // updates immediately when picked, independent of whether the other two
+  // are set yet. `onChange` only fires once all three combine into a real
+  // date, but the user always sees their picks reflected right away.
+  const [initialYear, initialMonth, initialDay] = value ? value.split('-') : ['', '', ''];
+  const [day, setDay] = useState<number | null>(initialDay ? parseInt(initialDay, 10) : null);
+  const [month, setMonth] = useState<number | null>(initialMonth ? parseInt(initialMonth, 10) : null);
+  const [year, setYear] = useState<number | null>(initialYear ? parseInt(initialYear, 10) : null);
 
   const currentYear = new Date().getFullYear();
   const minYear = currentYear - maxAge;
@@ -50,8 +54,12 @@ const DateOfBirthPicker: React.FC<DateOfBirthPickerProps> = ({
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
   const commit = (nextDay: number | null, nextMonth: number | null, nextYear: number | null) => {
+    setDay(nextDay);
+    setMonth(nextMonth);
+    setYear(nextYear);
+
     if (nextDay == null || nextMonth == null || nextYear == null) {
-      // Not all three parts chosen yet — store nothing until complete.
+      // Not all three parts chosen yet — nothing to propagate upward.
       return;
     }
     const check = new Date(nextYear, nextMonth - 1, nextDay);
@@ -60,8 +68,8 @@ const DateOfBirthPicker: React.FC<DateOfBirthPickerProps> = ({
       && check.getDate() === nextDay;
 
     if (!isRealDate) {
-      // e.g. 30 Feb — silently drop the day so the user re-picks a valid one.
-      onChange(`${String(nextYear)}-${String(nextMonth).padStart(2, '0')}-`);
+      // e.g. 30 Feb — keep the day/month/year shown, but don't propagate an
+      // impossible date. User will see the day picker again to correct it.
       return;
     }
     onChange(`${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(nextDay).padStart(2, '0')}`);
