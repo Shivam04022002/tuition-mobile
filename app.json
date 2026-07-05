@@ -36,8 +36,9 @@
     "newArchEnabled": true,
     "extra": {
       "eas": {
-        "projectId": "6b608924-0f39-43a5-9959-fcefd991337d"
+        "projectId": "1161cf2a-b7ee-47c7-82ad-17f730654472"
       }
-    }
+    },
+    "owner": "abhayyyyy19"
   }
 }
