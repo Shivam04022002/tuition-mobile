@@ -82,7 +82,7 @@ export interface MatchingEligibility {
 
 // API Functions
 export const getAvailability = async (token: string): Promise<LocationAvailability> => {
-  const response = await fetch(`${API_BASE_URL}/api/teachers/availability`, {
+  const response = await fetch(`${API_BASE_URL}/teachers/availability`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -102,7 +102,7 @@ export const updateAvailability = async (
   token: string,
   availability: Partial<LocationAvailability>
 ): Promise<LocationAvailability> => {
-  const response = await fetch(`${API_BASE_URL}/api/teachers/availability`, {
+  const response = await fetch(`${API_BASE_URL}/teachers/availability`, {
     method: 'PUT',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -121,7 +121,7 @@ export const updateAvailability = async (
 };
 
 export const getDiscoverability = async (token: string): Promise<Discoverability> => {
-  const response = await fetch(`${API_BASE_URL}/api/teachers/discoverability`, {
+  const response = await fetch(`${API_BASE_URL}/teachers/discoverability`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -141,7 +141,7 @@ export const updateDiscoverability = async (
   token: string,
   discoverability: Partial<Discoverability>
 ): Promise<Discoverability> => {
-  const response = await fetch(`${API_BASE_URL}/api/teachers/discoverability`, {
+  const response = await fetch(`${API_BASE_URL}/teachers/discoverability`, {
     method: 'PUT',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -160,7 +160,7 @@ export const updateDiscoverability = async (
 };
 
 export const getMatchingEligibility = async (token: string): Promise<MatchingEligibility> => {
-  const response = await fetch(`${API_BASE_URL}/api/teachers/matching-eligibility`, {
+  const response = await fetch(`${API_BASE_URL}/teachers/matching-eligibility`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',

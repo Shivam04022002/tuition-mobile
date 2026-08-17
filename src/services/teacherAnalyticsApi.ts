@@ -1,5 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BASE_URL } from '../constants/api';
+import { store } from '../redux/store';
 
 // Types for Teacher Analytics
 export interface TeacherAnalyticsKPIs {
@@ -181,9 +181,12 @@ export interface TeacherPerformanceResponse {
 
 // API Functions
 class TeacherAnalyticsAPI {
-  private async getAuthToken(): Promise<string | null> {
+  // The auth token lives in the Redux auth slice — nothing in the app ever
+  // writes it to AsyncStorage, so reading it from there always yielded null
+  // and every analytics/earnings request went out unauthenticated.
+  private getAuthToken(): string | null {
     try {
-      return await AsyncStorage.getItem('authToken');
+      return store.getState().auth?.token ?? null;
     } catch (error) {
       console.error('Error getting auth token:', error);
       return null;
@@ -194,9 +197,10 @@ class TeacherAnalyticsAPI {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const token = await this.getAuthToken();
-    
-    const response = await fetch(`${BASE_URL}/api/teachers${endpoint}`, {
+    const token = this.getAuthToken();
+
+    // BASE_URL already ends in `/api` — do not prepend it again.
+    const response = await fetch(`${BASE_URL}/teachers${endpoint}`, {
       headers: {
         'Content-Type': 'application/json',
         ...(token && { Authorization: `Bearer ${token}` }),
@@ -207,9 +211,7 @@ class TeacherAnalyticsAPI {
 
     if (!response.ok) {
       if (response.status === 401) {
-        // Token expired, clear storage and redirect to login
-        await AsyncStorage.removeItem('authToken');
-        await AsyncStorage.removeItem('userRole');
+        // Callers (useTeacherAnalytics) dispatch logout on this exact message.
         throw new Error('Authentication expired');
       }
       
