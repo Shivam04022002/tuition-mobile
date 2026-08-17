@@ -27,6 +27,7 @@ import SystemSettingsScreen from '../screens/settings/SystemSettingsScreen';
 import MaintenanceModeScreen from '../screens/settings/MaintenanceModeScreen';
 import NotificationTemplatesScreen from '../screens/settings/NotificationTemplatesScreen';
 import SmtpConfigScreen from '../screens/admin/SmtpConfigScreen';
+import LocationConfigScreen from '../screens/admin/LocationConfigScreen';
 import ComingSoonScreen from '../screens/settings/ComingSoonScreen';
 
 // Revenue Dashboard
@@ -239,6 +240,11 @@ const AdminNavigator: React.FC = () => {
       <Stack.Screen
         name="SmtpConfig"
         component={SmtpConfigScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="LocationConfig"
+        component={LocationConfigScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

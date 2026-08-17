@@ -87,6 +87,13 @@ const AdminSettingsScreen: React.FC = () => {
           iconColor: colors.info,
           onPress: () => navigation.navigate('SmtpConfig'),
         },
+        {
+          icon: 'location-outline',
+          label: 'Location Services',
+          subtitle: 'Google Maps API key for location autofill during signup',
+          iconColor: colors.success,
+          onPress: () => navigation.navigate('LocationConfig'),
+        },
       ],
     },
     {
