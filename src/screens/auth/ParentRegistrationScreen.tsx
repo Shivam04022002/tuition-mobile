@@ -145,6 +145,9 @@ const ParentRegistrationScreen: React.FC = () => {
   const dispatch = useAppDispatch();
   const { token } = useAppSelector((state) => state.auth);
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [formData, setFormData] = useState<FormData>({
     // Account Details
     parentName: '',
@@ -607,7 +610,9 @@ const ParentRegistrationScreen: React.FC = () => {
             placeholder="Create a password (min 8 chars)"
             value={formData.password}
             onChangeText={(text) => updateField('password', text)}
-            secureTextEntry
+            secureTextEntry={!showPassword}
+            rightIcon={showPassword ? 'eye-off-outline' : 'eye-outline'}
+            onRightIconPress={() => setShowPassword(!showPassword)}
             error={errors.password}
             required
           />
@@ -616,7 +621,9 @@ const ParentRegistrationScreen: React.FC = () => {
             placeholder="Confirm your password"
             value={formData.confirmPassword}
             onChangeText={(text) => updateField('confirmPassword', text)}
-            secureTextEntry
+            secureTextEntry={!showConfirmPassword}
+            rightIcon={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+            onRightIconPress={() => setShowConfirmPassword(!showConfirmPassword)}
             error={errors.confirmPassword}
             required
           />

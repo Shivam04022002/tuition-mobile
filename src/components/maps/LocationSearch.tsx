@@ -12,72 +12,33 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { GeocodedAddress, PlaceSuggestion } from '../../types/location';
-
-const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+import * as locationApi from '../../services/locationApi';
 
 interface LocationSearchProps {
   onLocationSelected: (result: GeocodedAddress) => void;
   placeholder?: string;
   initialValue?: string;
   disabled?: boolean;
-  currentLatitude?: number;
-  currentLongitude?: number;
 }
 
-async function fetchSuggestions(
-  query: string,
-  latitude?: number,
-  longitude?: number
-): Promise<PlaceSuggestion[]> {
-  if (!GOOGLE_MAPS_API_KEY || query.length < 3) return [];
-
-  let url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&key=${GOOGLE_MAPS_API_KEY}&components=country:in&types=geocode`;
-  if (latitude && longitude) {
-    url += `&location=${latitude},${longitude}&radius=50000`;
-  }
+// Both calls go through the backend (`/api/location/places/*`), which holds
+// the Google API key admins manage from Settings > Location services — no
+// key is ever bundled into the app, and rotating it needs no rebuild.
+async function fetchSuggestions(query: string): Promise<PlaceSuggestion[]> {
+  if (query.length < 3) return [];
 
   try {
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.status !== 'OK') return [];
-
-    return (data.predictions || []).map((p: any) => ({
-      placeId: p.place_id,
-      description: p.description,
-      mainText: p.structured_formatting?.main_text || p.description,
-      secondaryText: p.structured_formatting?.secondary_text || '',
-    }));
+    const res = await locationApi.searchPlaces(query);
+    return res.data || [];
   } catch {
     return [];
   }
 }
 
 async function fetchPlaceDetails(placeId: string): Promise<GeocodedAddress | null> {
-  if (!GOOGLE_MAPS_API_KEY) return null;
-
-  const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=geometry,formatted_address,address_component&key=${GOOGLE_MAPS_API_KEY}`;
-
   try {
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.status !== 'OK' || !data.result) return null;
-
-    const result = data.result;
-    const loc = result.geometry.location;
-    const components: Array<{ long_name: string; types: string[] }> =
-      result.address_components || [];
-
-    function extract(type: string): string {
-      return components.find(c => c.types.includes(type))?.long_name || '';
-    }
-
-    return {
-      latitude: loc.lat,
-      longitude: loc.lng,
-      formattedAddress: result.formatted_address,
-      city: extract('locality') || extract('administrative_area_level_2'),
-      pincode: extract('postal_code'),
-    };
+    const res = await locationApi.getPlaceDetails(placeId);
+    return res.data || null;
   } catch {
     return null;
   }
@@ -88,8 +49,6 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
   placeholder = 'Search for an area or address…',
   initialValue = '',
   disabled = false,
-  currentLatitude,
-  currentLongitude,
 }) => {
   const [query, setQuery] = useState(initialValue);
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
@@ -112,13 +71,13 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
 
       debounceTimer.current = setTimeout(async () => {
         setLoading(true);
-        const results = await fetchSuggestions(text, currentLatitude, currentLongitude);
+        const results = await fetchSuggestions(text);
         setSuggestions(results);
         setShowDropdown(results.length > 0);
         setLoading(false);
       }, 400);
     },
-    [currentLatitude, currentLongitude]
+    []
   );
 
   const handleSelectSuggestion = useCallback(

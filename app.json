@@ -23,7 +23,12 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.tuition.app"
+      "package": "com.tuition.app",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBtK5P6TIFzXD438K90Evh4Hr7df1nWUXA"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/images/favicon.png"

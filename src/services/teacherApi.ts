@@ -300,6 +300,11 @@ export const getTeacherProfile = async (token: string): Promise<TeacherProfile> 
   });
   if (!response.ok) {
     if (response.status === 401) throw new Error('Unauthorized');
+    // No TeacherProfile document exists yet — the account registered but
+    // never finished the onboarding wizard that creates one. Distinct from
+    // a real fetch failure so the UI can offer "complete onboarding"
+    // instead of a dead-end "retry".
+    if (response.status === 404) throw new Error('ProfileNotFound');
     throw new Error('Failed to fetch profile');
   }
   const data = await response.json();

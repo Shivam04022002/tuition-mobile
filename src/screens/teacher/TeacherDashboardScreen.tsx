@@ -496,14 +496,14 @@ const TeacherDashboardScreen: React.FC = () => {
 
       {/* ── Matching Leads ─────────────────────────────────────────────── */}
       <View style={styles.section}>
-        <SectionHeader title="Matching Leads" icon="star-outline" onSeeAll={() => {}} />
+        <SectionHeader title="Matching Leads" icon="star-outline" onSeeAll={() => navigation.navigate('Leads')} />
         {matches.length === 0 ? (
           <EmptyState
             icon="inbox"
             title="No matching leads"
             description="Complete your profile to unlock more lead matches."
             ctaLabel="Complete Profile"
-            onCta={() => {}}
+            onCta={() => navigation.navigate('TeacherOnboarding')}
             iconColor={colors.secondary}
           />
         ) : (

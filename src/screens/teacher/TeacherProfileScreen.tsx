@@ -39,6 +39,7 @@ const TeacherProfileScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [profile, setProfile] = useState<TeacherProfile | null>(null);
   const [togglingVacation, setTogglingVacation] = useState(false);
   const [savingLocations, setSavingLocations] = useState(false);
@@ -52,6 +53,7 @@ const TeacherProfileScreen: React.FC = () => {
   const loadProfile = useCallback(async () => {
     try {
       setError(null);
+      setNeedsOnboarding(false);
       if (!token) {
         setError('Authentication required');
         setLoading(false);
@@ -77,6 +79,8 @@ const TeacherProfileScreen: React.FC = () => {
       if (err.message === 'Unauthorized') {
         dispatch(logout());
         Alert.alert('Session Expired', 'Please login again');
+      } else if (err.message === 'ProfileNotFound') {
+        setNeedsOnboarding(true);
       } else {
         setError(err.message || 'Failed to load profile');
       }
@@ -243,6 +247,23 @@ const TeacherProfileScreen: React.FC = () => {
         <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
           Loading profile...
         </Text>
+      </View>
+    );
+  }
+
+  if (needsOnboarding) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+        <Ionicons name="clipboard-outline" size={48} color={theme.colors.primary} />
+        <Text style={[styles.loadingText, { color: theme.colors.textSecondary, marginTop: 16, textAlign: 'center' }]}>
+          Complete your profile setup to get started.
+        </Text>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('TeacherOnboarding')}
+          style={{ marginTop: 16, backgroundColor: colors.primary, paddingHorizontal: 28, paddingVertical: 10, borderRadius: 12 }}
+        >
+          <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '700' }}>Complete Profile</Text>
+        </TouchableOpacity>
       </View>
     );
   }

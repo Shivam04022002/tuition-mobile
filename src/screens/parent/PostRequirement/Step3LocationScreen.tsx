@@ -248,8 +248,6 @@ const Step3LocationScreen: React.FC = () => {
               <LocationSearch
                 onLocationSelected={handleSearchResult}
                 placeholder="Search area, street or landmark…"
-                currentLatitude={coordinates?.latitude}
-                currentLongitude={coordinates?.longitude}
               />
             </View>
             <MapPicker

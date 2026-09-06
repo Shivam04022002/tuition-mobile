@@ -47,6 +47,7 @@ const Input: React.FC<InputProps> = ({
     const baseStyle: TextStyle = {
       ...theme.textStyles.body,
       ...styles[size],
+      color: theme.colors.text,
       borderRadius: 8,
     };
 
