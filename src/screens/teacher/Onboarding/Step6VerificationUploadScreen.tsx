@@ -112,7 +112,7 @@ type RootStackParamList = {
 };
 
 type Step6RouteProp = RouteProp<
-  { Step6VerificationUpload: { pricingData: PricingData } },
+  { Step6VerificationUpload: { pricingData?: PricingData } | undefined },
   'Step6VerificationUpload'
 >;
 
@@ -122,9 +122,27 @@ const Step6VerificationUploadScreen: React.FC = () => {
   const theme = useTheme();
   const route = useRoute<Step6RouteProp>();
   const navigation = useNavigation<Step6NavigationProp>();
-  
-  const { pricingData } = route.params;
-  
+
+  const pricingData = route.params?.pricingData;
+
+  // Reached directly (e.g. tapping "Documents" on the Setup Steps hub)
+  // instead of via Step 5's "Next", so the accumulated wizard data was
+  // never passed through. Send them back to start the wizard properly
+  // instead of crashing on the missing data below.
+  React.useEffect(() => {
+    if (!pricingData) {
+      Alert.alert(
+        'Complete previous steps first',
+        'Please start from Basic Details so your teaching information carries through.',
+        [{ text: 'OK', onPress: () => (navigation as any).navigate('Step1BasicDetails') }]
+      );
+    }
+  }, [pricingData, navigation]);
+
+  if (!pricingData) {
+    return null;
+  }
+
   const [aadhaarCard, setAadhaarCard] = useState('');
   const [panCard, setPanCard] = useState('');
   const [qualificationDocuments, setQualificationDocuments] = useState<string[]>([]);

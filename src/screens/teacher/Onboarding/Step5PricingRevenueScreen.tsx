@@ -99,7 +99,7 @@ type RootStackParamList = {
 };
 
 type Step5RouteProp = RouteProp<
-  { Step5PricingRevenue: { locationData: LocationData } },
+  { Step5PricingRevenue: { locationData?: LocationData } | undefined },
   'Step5PricingRevenue'
 >;
 
@@ -109,9 +109,27 @@ const Step5PricingRevenueScreen: React.FC = () => {
   const theme = useTheme();
   const route = useRoute<Step5RouteProp>();
   const navigation = useNavigation<Step5NavigationProp>();
-  
-  const { locationData } = route.params;
-  
+
+  const locationData = route.params?.locationData;
+
+  // Reached directly (e.g. tapping "Pricing" on the Setup Steps hub) instead
+  // of via Step 4's "Next", so the accumulated wizard data was never passed
+  // through. Send them back to start the wizard properly instead of
+  // crashing on the missing data below.
+  React.useEffect(() => {
+    if (!locationData) {
+      Alert.alert(
+        'Complete previous steps first',
+        'Please start from Basic Details so your teaching information carries through.',
+        [{ text: 'OK', onPress: () => (navigation as any).navigate('Step1BasicDetails') }]
+      );
+    }
+  }, [locationData, navigation]);
+
+  if (!locationData) {
+    return null;
+  }
+
   const [hourlyRate, setHourlyRate] = useState('');
   const [monthlyRate, setMonthlyRate] = useState('');
   const [currentRevenue, setCurrentRevenue] = useState('');

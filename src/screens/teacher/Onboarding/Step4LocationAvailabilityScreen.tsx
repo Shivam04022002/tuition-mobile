@@ -85,7 +85,7 @@ type RootStackParamList = {
 };
 
 type Step4RouteProp = RouteProp<
-  { Step4LocationAvailability: { teachingData: TeachingData } },
+  { Step4LocationAvailability: { teachingData?: TeachingData } | undefined },
   'Step4LocationAvailability'
 >;
 
@@ -95,9 +95,27 @@ const Step4LocationAvailabilityScreen: React.FC = () => {
   const theme = useTheme();
   const route = useRoute<Step4RouteProp>();
   const navigation = useNavigation<Step4NavigationProp>();
-  
-  const { teachingData } = route.params;
-  
+
+  const teachingData = route.params?.teachingData;
+
+  // Reached directly (e.g. tapping "Location & Availability" on the Setup
+  // Steps hub) instead of via Step 3's "Next", so the accumulated wizard
+  // data was never passed through. Send them back to start the wizard
+  // properly instead of crashing on the missing data below.
+  React.useEffect(() => {
+    if (!teachingData) {
+      Alert.alert(
+        'Complete previous steps first',
+        'Please start from Basic Details so your teaching information carries through.',
+        [{ text: 'OK', onPress: () => (navigation as any).navigate('Step1BasicDetails') }]
+      );
+    }
+  }, [teachingData, navigation]);
+
+  if (!teachingData) {
+    return null;
+  }
+
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [pincode, setPincode] = useState('');

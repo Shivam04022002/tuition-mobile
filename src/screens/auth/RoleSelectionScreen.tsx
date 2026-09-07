@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Animated } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppDispatch } from '../../redux/store';
 import { setRole } from '../../redux/slices/userSlice';
@@ -25,6 +25,18 @@ const RoleSelectionScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'parent' | 'teacher' | null>(null);
   const fadeAnim = React.useRef(new Animated.Value(1)).current;
+
+  // This screen isn't unmounted when navigating forward — it stays on the
+  // stack. Without this, coming back (e.g. tapping back from Registration)
+  // shows the same instance still stuck on the "Preparing your
+  // experience..." overlay from before, since loading was never reset.
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(false);
+      setSelectedRole(null);
+      fadeAnim.setValue(1);
+    }, [fadeAnim])
+  );
 
   const handleRoleSelect = useCallback(async (role: 'parent' | 'teacher') => {
     console.log('[ROLE_SELECT]', role);
