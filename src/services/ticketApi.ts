@@ -183,7 +183,8 @@ export async function getTickets(
   });
   const json = await res.json();
   if (!res.ok || !json.success) throw new Error(json.message || 'Failed to fetch tickets');
-  return json.data as TicketListResult;
+  const data = json.data as TicketListResult;
+  return { ...data, tickets: data?.tickets ?? [] };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

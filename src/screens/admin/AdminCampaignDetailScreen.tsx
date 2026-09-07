@@ -53,7 +53,7 @@ const AdminCampaignDetailScreen: React.FC = () => {
   const token: string = useSelector((state: any) => state.auth?.token ?? '');
   const topPad     = insets.top > 0 ? insets.top : (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 44);
 
-  const { campaignId } = route.params as { campaignId: string };
+  const { campaignId } = (route.params as { campaignId?: string }) ?? {};
 
   const [data,          setData]          = useState<CampaignStatsResult | null>(null);
   const [isLoading,     setIsLoading]     = useState(true);
@@ -63,6 +63,11 @@ const AdminCampaignDetailScreen: React.FC = () => {
   const [cancelReason,  setCancelReason]  = useState('');
 
   const fetchData = useCallback(async () => {
+    if (!campaignId) {
+      setIsLoading(false);
+      setError('No campaign was specified.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {

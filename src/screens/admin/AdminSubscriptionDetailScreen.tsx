@@ -6,7 +6,7 @@ import { SubscriptionDetail, getSubscriptionDetail, upgradeSubscription, downgra
 
 interface Props {
   navigation: any;
-  route: { params: { teacherId: string; subscriptionId: string } };
+  route: { params?: { teacherId?: string; subscriptionId?: string } };
 }
 
 const planOptions = [
@@ -17,7 +17,7 @@ const planOptions = [
 ];
 
 export default function AdminSubscriptionDetailScreen({ navigation, route }: Props) {
-  const { teacherId, subscriptionId } = route.params;
+  const { teacherId, subscriptionId } = route.params ?? {};
   const [detail, setDetail] = useState<SubscriptionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -28,6 +28,7 @@ export default function AdminSubscriptionDetailScreen({ navigation, route }: Pro
   const [processing, setProcessing] = useState(false);
 
   const loadDetail = useCallback(async () => {
+    if (!teacherId) return;
     try {
       const response = await getSubscriptionDetail(teacherId);
       if (response.success) setDetail(response.data);
@@ -114,6 +115,12 @@ export default function AdminSubscriptionDetailScreen({ navigation, route }: Pro
       </Modal>
     );
   };
+
+  if (!teacherId || !subscriptionId) return (
+    <View style={styles.centered}>
+      <Text>No teacher/subscription was specified.</Text>
+    </View>
+  );
 
   if (loading || !detail) return (
     <View style={styles.centered}>

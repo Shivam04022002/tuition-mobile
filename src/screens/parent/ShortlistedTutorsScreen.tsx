@@ -41,7 +41,7 @@ const ShortlistedTutorsScreen: React.FC = () => {
 
   const handleViewProfile = useCallback((shortlist: Shortlist) => {
     navigation.navigate('TutorProfile', {
-      profileId: shortlist.teacherProfileId?._id,
+      tutorId: shortlist.teacherProfileId?._id,
     });
   }, [navigation]);
 

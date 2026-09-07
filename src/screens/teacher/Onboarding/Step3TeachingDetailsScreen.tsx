@@ -64,7 +64,7 @@ type RootStackParamList = {
 };
 
 type Step3RouteProp = RouteProp<
-  { Step3TeachingDetails: { educationData: EducationData } },
+  { Step3TeachingDetails: { educationData?: EducationData } | undefined },
   'Step3TeachingDetails'
 >;
 
@@ -74,9 +74,27 @@ const Step3TeachingDetailsScreen: React.FC = () => {
   const theme = useTheme();
   const route = useRoute<Step3RouteProp>();
   const navigation = useNavigation<Step3NavigationProp>();
-  
-  const { educationData } = route.params;
-  
+
+  const educationData = route.params?.educationData;
+
+  // Reached directly (e.g. tapping "Teaching Details" on the Setup Steps
+  // hub) instead of via Step 2's "Next", so the accumulated wizard data
+  // was never passed through. Send them back to start the wizard properly
+  // instead of crashing on the missing data below.
+  React.useEffect(() => {
+    if (!educationData) {
+      Alert.alert(
+        'Complete previous steps first',
+        'Please start from Basic Details so your information carries through.',
+        [{ text: 'OK', onPress: () => (navigation as any).navigate('Step1BasicDetails') }]
+      );
+    }
+  }, [educationData, navigation]);
+
+  if (!educationData) {
+    return null;
+  }
+
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
   const [selectedBoards, setSelectedBoards] = useState<string[]>([]);

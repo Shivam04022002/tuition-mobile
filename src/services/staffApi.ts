@@ -130,7 +130,7 @@ export async function getVerificationQueue(
   const json = await res.json();
   if (!res.ok || !json.success) throw new Error(json.message || 'Failed to fetch verification queue');
   return {
-    teachers: json.data as VerificationTeacher[],
+    teachers: (json.data as VerificationTeacher[]) ?? [],
     counts: json.counts as VerificationCounts,
     pagination: json.pagination,
   };

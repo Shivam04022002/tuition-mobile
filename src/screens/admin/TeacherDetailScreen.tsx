@@ -19,7 +19,7 @@ import {
   unblockTeacher,
 } from '../../services/adminApi';
 
-type RouteParams = { teacherId: string };
+type RouteParams = { teacherId?: string };
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <View style={styles.section}>
@@ -39,7 +39,7 @@ const TeacherDetailScreen: React.FC = () => {
   const token: string = useSelector((state: any) => state.auth?.token ?? '');
   const navigation = useNavigation<any>();
   const route = useRoute();
-  const { teacherId } = route.params as RouteParams;
+  const { teacherId } = (route.params as RouteParams) ?? {};
 
   const [teacher, setTeacher] = useState<AdminTeacher | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,6 +47,11 @@ const TeacherDetailScreen: React.FC = () => {
   const [actionLoading, setActionLoading] = useState(false);
 
   const fetchTeacher = useCallback(async () => {
+    if (!teacherId) {
+      setLoading(false);
+      setError('No teacher was specified');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {

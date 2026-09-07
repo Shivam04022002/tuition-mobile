@@ -125,7 +125,7 @@ const StaffReportsScreen: React.FC = () => {
   }));
   const dailyMax = Math.max(...dailyActivity.map((d) => d.value), 1);
 
-  const verBySubject = (reports?.verifications.bySubject ?? []).map((v, i) => ({
+  const verBySubject = (reports?.verifications?.bySubject ?? []).map((v, i) => ({
     label: v.label,
     value: v.value,
     color: SUBJECT_COLORS[i % SUBJECT_COLORS.length],
@@ -181,10 +181,10 @@ const StaffReportsScreen: React.FC = () => {
       {/* Summary KPIs */}
       <View style={styles.kpiStrip}>
         {[
-          { label: 'Tickets\nResolved', value: String(reports?.kpis.totalResolved ?? 0), color: colors.success },
-          { label: 'Avg. Time', value: `${reports?.kpis.avgResolutionHours ?? '0'}h`, color: colors.info },
-          { label: 'Verifications', value: String(reports?.kpis.verifications ?? 0), color: colors.accent },
-          { label: 'Staff\nPerformance', value: `${reports?.kpis.verifications ?? 0}`, color: colors.secondary },
+          { label: 'Tickets\nResolved', value: String(reports?.kpis?.totalResolved ?? 0), color: colors.success },
+          { label: 'Avg. Time', value: `${reports?.kpis?.avgResolutionHours ?? '0'}h`, color: colors.info },
+          { label: 'Verifications', value: String(reports?.kpis?.verifications ?? 0), color: colors.accent },
+          { label: 'Staff\nPerformance', value: `${reports?.kpis?.verifications ?? 0}`, color: colors.secondary },
         ].map((k, idx) => (
           <React.Fragment key={k.label}>
             {idx > 0 && <View style={styles.kpiDivider} />}
@@ -211,22 +211,22 @@ const StaffReportsScreen: React.FC = () => {
         {/* Ticket Resolution */}
         <SectionCard title="Ticket Resolution" icon="timer-outline" color={colors.success}>
           <View style={styles.metricGrid}>
-            <StatRow icon="flash-outline"          label="Total Resolved"  value={String(reports?.tickets.totalResolved ?? 0)}  color={colors.success} sub="This month" />
+            <StatRow icon="flash-outline"          label="Total Resolved"  value={String(reports?.tickets?.totalResolved ?? 0)}  color={colors.success} sub="This month" />
             <View style={styles.divider} />
-            <StatRow icon="hourglass-outline"      label="Avg. Resolution" value={`${reports?.tickets.avgResolutionHours ?? '0'}h`} color={colors.info}    sub="Per ticket" />
+            <StatRow icon="hourglass-outline"      label="Avg. Resolution" value={`${reports?.tickets?.avgResolutionHours ?? '0'}h`} color={colors.info}    sub="Per ticket" />
             <View style={styles.divider} />
-            <StatRow icon="checkmark-done-outline" label="SLA Compliance"  value={`${reports?.tickets.slaCompliance ?? 0}%`}  color={colors.accent} sub="Target: 90%" />
+            <StatRow icon="checkmark-done-outline" label="SLA Compliance"  value={`${reports?.tickets?.slaCompliance ?? 0}%`}  color={colors.accent} sub="Target: 90%" />
           </View>
         </SectionCard>
 
         {/* Verification Progress */}
         <SectionCard title="Verification Progress" icon="shield-checkmark-outline" color={colors.accent}>
           <View style={styles.metricGrid}>
-            <StatRow icon="checkmark-circle-outline" label="Approved" value={String(reports?.verifications.approved ?? 0)} color={colors.success} sub="This month" />
+            <StatRow icon="checkmark-circle-outline" label="Approved" value={String(reports?.verifications?.approved ?? 0)} color={colors.success} sub="This month" />
             <View style={styles.divider} />
-            <StatRow icon="close-circle-outline"     label="Rejected" value={String(reports?.verifications.rejected ?? 0)} color={colors.error}   sub="This month" />
+            <StatRow icon="close-circle-outline"     label="Rejected" value={String(reports?.verifications?.rejected ?? 0)} color={colors.error}   sub="This month" />
             <View style={styles.divider} />
-            <StatRow icon="time-outline"              label="Pending"  value={String(reports?.verifications.pending  ?? 0)} color={colors.accent}  sub="Awaiting review" />
+            <StatRow icon="time-outline"              label="Pending"  value={String(reports?.verifications?.pending  ?? 0)} color={colors.accent}  sub="Awaiting review" />
           </View>
           {verBySubject.length > 0 && (
             <>

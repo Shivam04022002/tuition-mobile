@@ -49,7 +49,7 @@ type RootStackParamList = {
 };
 
 type Step2RouteProp = RouteProp<
-  { Step2Education: { basicDetails: BasicDetails } },
+  { Step2Education: { basicDetails?: BasicDetails } | undefined },
   'Step2Education'
 >;
 
@@ -59,9 +59,27 @@ const Step2EducationScreen: React.FC = () => {
   const theme = useTheme();
   const route = useRoute<Step2RouteProp>();
   const navigation = useNavigation<Step2NavigationProp>();
-  
-  const { basicDetails } = route.params;
-  
+
+  const basicDetails = route.params?.basicDetails;
+
+  // Reached directly (e.g. tapping "Education" on the Setup Steps hub)
+  // instead of via Step 1's "Next", so the prior-step data was never
+  // passed through. Send them back to start the wizard properly instead
+  // of crashing on the missing data below.
+  React.useEffect(() => {
+    if (!basicDetails) {
+      Alert.alert(
+        'Complete previous steps first',
+        'Please start from Basic Details so your information carries through.',
+        [{ text: 'OK', onPress: () => (navigation as any).navigate('Step1BasicDetails') }]
+      );
+    }
+  }, [basicDetails, navigation]);
+
+  if (!basicDetails) {
+    return null;
+  }
+
   const [highestQualification, setHighestQualification] = useState('');
   const [degree, setDegree] = useState('');
   const [university, setUniversity] = useState('');
