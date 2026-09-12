@@ -14,11 +14,13 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppSelector } from '../../redux/store';
 import { selectAuthToken } from '../../redux/slices/authSlice';
+import { selectHasActiveSubscription } from '../../redux/slices/parentSubscriptionSlice';
 import { useRecommendationsList } from '../../hooks/useRecommendations';
 import { colors } from '../../theme/colors';
 import { shadows } from '../../theme/shadows';
 import { PrimaryButton } from '../../components/ui';
 import TutorCard from '../../components/parent/TutorCard';
+import SubscriptionRequiredModal from '../../components/parent/SubscriptionRequiredModal';
 import type { RecommendedTutor, SortOption, TeachingMode } from '../../services/recommendationApi';
 
 const SORT_OPTIONS: { value: SortOption; label: string; icon: string }[] = [
@@ -219,10 +221,12 @@ const EmptyState: React.FC<{ onCreateRequirement: () => void }> = ({ onCreateReq
 const RecommendedTutorsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const token = useAppSelector(selectAuthToken);
+  const hasActiveSubscription = useAppSelector(selectHasActiveSubscription);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
+  const [paywallVisible, setPaywallVisible] = useState(false);
 
   const { tutors, isLoading, isRefreshing, isLoadingMore, error, hasMore, sortBy, filters, refresh, loadMore, retry, setFilters, setSortBy } = useRecommendationsList(token, {}, 'match');
 
@@ -243,8 +247,12 @@ const RecommendedTutorsScreen: React.FC = () => {
   }, [navigation]);
 
   const handleContact = useCallback((tutor: RecommendedTutor) => {
+    if (!hasActiveSubscription) {
+      setPaywallVisible(true);
+      return;
+    }
     navigation.navigate('TutorProfile', { tutorId: tutor._id, matchId: tutor.matchId, showContact: true });
-  }, [navigation]);
+  }, [hasActiveSubscription, navigation]);
 
   const handleCreateRequirement = useCallback(() => {
     navigation.navigate('ParentRequirementForm', { mode: 'create' });
@@ -390,6 +398,14 @@ const RecommendedTutorsScreen: React.FC = () => {
 
       <FilterModal visible={showFilters} onClose={() => setShowFilters(false)} filters={filters} onApply={setFilters} />
       <SortModal visible={showSort} onClose={() => setShowSort(false)} currentSort={sortBy} onSelect={setSortBy} />
+      <SubscriptionRequiredModal
+        visible={paywallVisible}
+        onClose={() => setPaywallVisible(false)}
+        onUpgrade={() => {
+          setPaywallVisible(false);
+          navigation.navigate('SubscriptionPlans');
+        }}
+      />
     </View>
   );
 };

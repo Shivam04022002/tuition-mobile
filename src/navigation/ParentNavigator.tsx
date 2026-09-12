@@ -63,6 +63,7 @@ import RecommendedTutorsScreen from '../screens/parent/RecommendedTutorsScreen';
 import TutorProfileScreen from '../screens/parent/TutorProfileScreen';
 import TutorSearchScreen from '../screens/parent/TutorSearchScreen';
 import TutorReviewsScreen from '../screens/parent/TutorReviewsScreen';
+import SubscriptionPlansScreen from '../screens/parent/SubscriptionPlansScreen';
 
 // Shortlisted & Demo Classes Screens
 import ShortlistedTutorsScreen from '../screens/parent/ShortlistedTutorsScreen';
@@ -348,6 +349,11 @@ const ParentNavigator: React.FC = () => {
       <Stack.Screen
         name="Shortlisted"
         component={ShortlistedTutorsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="SubscriptionPlans"
+        component={SubscriptionPlansScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

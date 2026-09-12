@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
 import { colors } from '../../theme/colors';
 import { shadows } from '../../theme/shadows';
 import { useTickets } from '../../hooks/useTickets';
@@ -50,10 +51,33 @@ const CreateTicketScreen: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<TicketCategory | null>(null);
   const [selectedPriority, setSelectedPriority] = useState<TicketPriority>('medium');
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [attachment, setAttachment] = useState<{ uri: string; name: string; mimeType: string } | null>(null);
 
   const { create, isSubmitting } = useTickets();
 
   const isFormValid = subject.trim().length > 0 && selectedCategory !== null && description.trim().length > 10;
+
+  const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024; // 10 MB, matches the backend limit
+
+  const handlePickAttachment = async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
+      copyToCacheDirectory: true,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+
+    const file = result.assets[0];
+    if (file.size && file.size > MAX_ATTACHMENT_BYTES) {
+      Alert.alert('File too large', 'Please choose a file under 10 MB.');
+      return;
+    }
+
+    setAttachment({
+      uri: file.uri,
+      name: file.name,
+      mimeType: file.mimeType || 'application/octet-stream',
+    });
+  };
 
   const handleSubmit = async () => {
     if (!isFormValid) {
@@ -68,6 +92,7 @@ const CreateTicketScreen: React.FC = () => {
         priority: selectedPriority.toLowerCase() as any,
         subject: subject.trim(),
         description: description.trim(),
+        attachment: attachment ?? undefined,
       });
 
       Alert.alert(
@@ -212,18 +237,28 @@ const CreateTicketScreen: React.FC = () => {
           <Text style={styles.charCount}>{description.length}/1000</Text>
         </View>
 
-        {/* Attachment Placeholder */}
+        {/* Attachment */}
         <View style={styles.fieldGroup}>
           <Text style={styles.fieldLabel}>Attachment (Optional)</Text>
-          <TouchableOpacity style={styles.attachmentBox} activeOpacity={0.75}>
-            <Ionicons name="attach-outline" size={24} color={colors.textSecondary} />
+          <TouchableOpacity style={styles.attachmentBox} activeOpacity={0.75} onPress={handlePickAttachment}>
+            <Ionicons
+              name={attachment ? 'document-attach' : 'attach-outline'}
+              size={24}
+              color={attachment ? colors.primary : colors.textSecondary}
+            />
             <View style={styles.attachmentText}>
-              <Text style={styles.attachmentTitle}>Attach Screenshot</Text>
-              <Text style={styles.attachmentSub}>JPG, PNG up to 5 MB</Text>
+              <Text style={styles.attachmentTitle} numberOfLines={1}>
+                {attachment ? attachment.name : 'Attach a screenshot or PDF'}
+              </Text>
+              <Text style={styles.attachmentSub}>JPG, PNG, WEBP or PDF up to 10 MB</Text>
             </View>
-            <View style={styles.attachmentBadge}>
-              <Text style={styles.attachmentBadgeText}>Coming Soon</Text>
-            </View>
+            {attachment ? (
+              <TouchableOpacity onPress={() => setAttachment(null)} hitSlop={8}>
+                <Ionicons name="close-circle" size={20} color={colors.textTertiary} />
+              </TouchableOpacity>
+            ) : (
+              <Ionicons name="add-circle-outline" size={22} color={colors.primary} />
+            )}
           </TouchableOpacity>
         </View>
 

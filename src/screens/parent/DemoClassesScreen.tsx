@@ -76,7 +76,7 @@ const DemoClassesScreen: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/demo-classes/parent`, {
+      const response = await fetch(`${API_BASE_URL}/demos/parent`, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
       if (response.status === 401) throw new Error('Session expired. Please login again.');

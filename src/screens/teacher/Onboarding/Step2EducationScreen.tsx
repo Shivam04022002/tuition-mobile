@@ -11,6 +11,7 @@ import {
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../theme';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
@@ -63,21 +64,26 @@ const Step2EducationScreen: React.FC = () => {
   const basicDetails = route.params?.basicDetails;
 
   // Reached directly (e.g. tapping "Education" on the Setup Steps hub)
-  // instead of via Step 1's "Next", so the prior-step data was never
-  // passed through. Send them back to start the wizard properly instead
-  // of crashing on the missing data below.
-  React.useEffect(() => {
-    if (!basicDetails) {
-      Alert.alert(
-        'Complete previous steps first',
-        'Please start from Basic Details so your information carries through.',
-        [{ text: 'OK', onPress: () => (navigation as any).navigate('Step1BasicDetails') }]
-      );
-    }
-  }, [basicDetails, navigation]);
-
+  // instead of via Step 1's "Next", so the prior-step data was never passed
+  // through. Show a real screen with a way forward instead of a blank view —
+  // an Alert alone still reads as "the screen froze" once it's dismissed.
   if (!basicDetails) {
-    return null;
+    return (
+      <View style={[styles.container, styles.centered, { backgroundColor: theme.colors.background }]}>
+        <Ionicons name="alert-circle-outline" size={48} color={theme.colors.primary} />
+        <Text style={[styles.blockedTitle, { color: theme.colors.text }]}>
+          Complete previous steps first
+        </Text>
+        <Text style={[styles.blockedSubtitle, { color: theme.colors.textSecondary }]}>
+          Please start from Basic Details so your information carries through.
+        </Text>
+        <Button
+          title="Go to Basic Details"
+          onPress={() => (navigation as any).navigate('Step1BasicDetails')}
+          style={{ marginTop: 20 }}
+        />
+      </View>
+    );
   }
 
   const [highestQualification, setHighestQualification] = useState('');
@@ -460,6 +466,23 @@ const Step2EducationScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  blockedTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  blockedSubtitle: {
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   progressSection: {
     paddingTop: 20,

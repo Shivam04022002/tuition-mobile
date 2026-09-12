@@ -8,13 +8,18 @@ import {
   Animated,
   Alert,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../../../theme';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import Input from '../../../components/common/Input';
+import { useAppSelector } from '../../../redux/store';
+import { selectAuthToken } from '../../../redux/slices/authSlice';
+import { uploadTeacherProfilePhoto } from '../../../services/teacherApi';
 
 interface BasicDetails {
   fullName: string;
@@ -35,7 +40,8 @@ type Step1NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Step2E
 const Step1BasicDetailsScreen: React.FC = () => {
   const theme = useTheme();
   const navigation = useNavigation<Step1NavigationProp>();
-  
+  const token = useAppSelector(selectAuthToken);
+
   const [fullName, setFullName] = useState('');
   const [gender, setGender] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
@@ -43,6 +49,7 @@ const Step1BasicDetailsScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
   const [profilePhoto, setProfilePhoto] = useState('');
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   
   const fadeAnim = new Animated.Value(0);
   const slideAnim = new Animated.Value(50);
@@ -82,13 +89,77 @@ const Step1BasicDetailsScreen: React.FC = () => {
     );
   };
 
+  const uploadPickedPhoto = async (asset: ImagePicker.ImagePickerAsset) => {
+    if (!token) {
+      Alert.alert('Error', 'You need to be logged in to upload a photo.');
+      return;
+    }
+    setIsUploadingPhoto(true);
+    try {
+      const fileName = asset.fileName || `profile-${Date.now()}.jpg`;
+      const updated = await uploadTeacherProfilePhoto(token, {
+        uri: asset.uri,
+        name: fileName,
+        mimeType: asset.mimeType || 'image/jpeg',
+      });
+      const uploadedUrl = updated?.basicDetails?.profilePhoto;
+      if (uploadedUrl) {
+        setProfilePhoto(uploadedUrl);
+      } else {
+        // Fall back to the local URI so the picked photo still shows even if
+        // the response shape ever changes — it will be replaced by the real
+        // uploaded URL next time the profile is fetched.
+        setProfilePhoto(asset.uri);
+      }
+    } catch (error: any) {
+      Alert.alert('Upload Failed', error?.message || 'Could not upload the photo. Please try again.');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const openCamera = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission Required', 'Camera access is needed to take a photo.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets?.[0]) {
+      await uploadPickedPhoto(result.assets[0]);
+    }
+  };
+
+  const openGallery = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission Required', 'Photo library access is needed to choose a photo.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets?.[0]) {
+      await uploadPickedPhoto(result.assets[0]);
+    }
+  };
+
   const handlePhotoUpload = () => {
+    if (isUploadingPhoto) return;
     Alert.alert(
       'Upload Photo',
       'Choose photo source',
       [
-        { text: 'Camera', onPress: () => console.log('Open camera') },
-        { text: 'Gallery', onPress: () => console.log('Open gallery') },
+        { text: 'Camera', onPress: openCamera },
+        { text: 'Gallery', onPress: openGallery },
         { text: 'Cancel', style: 'cancel' },
       ]
     );
@@ -234,8 +305,19 @@ const Step1BasicDetailsScreen: React.FC = () => {
         ]}
       >
         <Card variant="outlined" margin="small">
-          <TouchableOpacity style={styles.photoUploadSection} onPress={handlePhotoUpload}>
-            {profilePhoto ? (
+          <TouchableOpacity
+            style={styles.photoUploadSection}
+            onPress={handlePhotoUpload}
+            disabled={isUploadingPhoto}
+          >
+            {isUploadingPhoto ? (
+              <View style={[styles.photoPlaceholder, { backgroundColor: theme.colors.backgroundSecondary }]}>
+                <ActivityIndicator color={theme.colors.primary} />
+                <Text style={[styles.photoText, { color: theme.colors.textSecondary, marginTop: 8 }]}>
+                  Uploading...
+                </Text>
+              </View>
+            ) : profilePhoto ? (
               <Image source={{ uri: profilePhoto }} style={styles.profileImage} />
             ) : (
               <View style={[styles.photoPlaceholder, { backgroundColor: theme.colors.backgroundSecondary }]}>

@@ -208,6 +208,7 @@ const TeacherDashboardScreen: React.FC = () => {
             icon="people-outline"
             bgColor={colors.primary}
             style={styles.statItem}
+            onPress={() => navigation.navigate('Leads')}
           />
           <StatsCard
             label="Applications Sent"
@@ -215,6 +216,7 @@ const TeacherDashboardScreen: React.FC = () => {
             icon="send-outline"
             bgColor={colors.secondary}
             style={styles.statItem}
+            onPress={() => navigation.navigate('Applications')}
           />
           <StatsCard
             label="Upcoming Demos"
@@ -222,6 +224,7 @@ const TeacherDashboardScreen: React.FC = () => {
             icon="videocam-outline"
             bgColor={colors.pink}
             style={styles.statItem}
+            onPress={() => navigation.navigate('DemoRequestsDashboard')}
           />
           <StatsCard
             label="Active Students"
@@ -229,6 +232,7 @@ const TeacherDashboardScreen: React.FC = () => {
             icon="school-outline"
             bgColor={colors.accent}
             style={styles.statItem}
+            onPress={() => navigation.navigate('Applications')}
           />
         </View>
       </View>

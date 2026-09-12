@@ -31,11 +31,29 @@ const STAT_W = (width - 32 - STAT_GAP) / 2;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+// A freshly-created requirement defaults to 'published' and auto-progresses
+// through these statuses as it gets applications/shortlists/demos — 'active'
+// is a legacy value the backend never actually sets, so it must be included
+// here alongside the real ones, not relied on alone.
+const ONGOING_STATUSES = [
+  'active',
+  'published',
+  'receiving_applications',
+  'shortlisted',
+  'demo_scheduled',
+  'teacher_selected',
+];
+
+function isOngoing(status: string): boolean {
+  return ONGOING_STATUSES.includes(status);
+}
+
 function getStatusColor(status: string): string {
+  if (isOngoing(status)) return colors.success;
   switch (status) {
-    case 'active':   return colors.success;
     case 'paused':   return colors.warning ?? '#F59E0B';
     case 'closed':   return colors.textTertiary;
+    case 'cancelled': return colors.textTertiary;
     case 'expired':  return colors.error;
     case 'draft':    return colors.info ?? '#3B82F6';
     default:         return colors.textTertiary;
@@ -43,10 +61,11 @@ function getStatusColor(status: string): string {
 }
 
 function getStatusIcon(status: string): string {
+  if (isOngoing(status)) return 'checkmark-circle-outline';
   switch (status) {
-    case 'active':   return 'checkmark-circle-outline';
     case 'paused':   return 'pause-circle-outline';
     case 'closed':   return 'lock-closed-outline';
+    case 'cancelled': return 'close-circle-outline';
     case 'expired':  return 'time-outline';
     case 'draft':    return 'document-outline';
     default:         return 'help-circle-outline';
@@ -54,10 +73,11 @@ function getStatusIcon(status: string): string {
 }
 
 function getStatusLabel(status: string): string {
+  if (isOngoing(status)) return 'Active';
   switch (status) {
-    case 'active':   return 'Active';
     case 'paused':   return 'Paused';
     case 'closed':   return 'Closed';
+    case 'cancelled': return 'Cancelled';
     case 'expired':  return 'Expired';
     case 'draft':    return 'Draft';
     default:         return status;
@@ -162,7 +182,7 @@ const RequirementCard: React.FC<RequirementCardProps> = memo((
           size="sm"
           style={styles.actionFlex}
         />
-        {(requirement.status === 'active' || requirement.status === 'paused') && (
+        {(isOngoing(requirement.status) || requirement.status === 'paused') && (
           <PrimaryButton
             label="Edit"
             onPress={() => onEdit(requirement._id)}
@@ -175,7 +195,7 @@ const RequirementCard: React.FC<RequirementCardProps> = memo((
 
       {/* Secondary actions */}
       <View style={[styles.cardActions, styles.secondaryActions]}>
-        {requirement.status === 'active' && (
+        {isOngoing(requirement.status) && (
           <PrimaryButton
             label="Pause"
             onPress={() => onPause(requirement._id)}
@@ -193,7 +213,7 @@ const RequirementCard: React.FC<RequirementCardProps> = memo((
             style={styles.actionFlex}
           />
         )}
-        {(requirement.status === 'active' || requirement.status === 'paused') && (
+        {(isOngoing(requirement.status) || requirement.status === 'paused') && (
           <PrimaryButton
             label="Close"
             onPress={() => onClose(requirement._id)}

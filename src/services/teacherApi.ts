@@ -449,3 +449,34 @@ export const updateTeacherProfile = async (
   const data = await response.json();
   return data.data || data;
 };
+
+// Upload/replace the teacher's profile photo (camera or gallery pick).
+// Same PUT /teachers/profile endpoint as updateTeacherProfile, but as
+// multipart form-data so the backend's upload.single('profilePicture')
+// middleware picks it up.
+export const uploadTeacherProfilePhoto = async (
+  token: string,
+  photo: { uri: string; name: string; mimeType: string }
+): Promise<TeacherProfile> => {
+  const form = new FormData();
+  form.append('profilePicture', {
+    uri: photo.uri,
+    name: photo.name,
+    type: photo.mimeType,
+  } as any);
+
+  const response = await fetch(`${API_BASE_URL}/teachers/profile`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) throw new Error('Unauthorized');
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Failed to upload photo (${response.status})`);
+  }
+
+  const data = await response.json();
+  return data.data || data;
+};

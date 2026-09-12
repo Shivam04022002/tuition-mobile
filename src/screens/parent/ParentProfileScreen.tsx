@@ -25,7 +25,7 @@ import { shadows } from '../../theme/shadows';
 interface ProfileData {
   _id: string;
   email: string;
-  mobileNumber: string;
+  phoneNumber: string;
   role: string;
   profile?: {
     firstName?: string;
@@ -134,7 +134,7 @@ const ParentProfileScreen: React.FC = () => {
     .join('');
 
   const email = profile?.email || userProfile?.email || 'No email';
-  const mobile = profile?.mobileNumber || 'No mobile number';
+  const mobile = profile?.phoneNumber || 'No mobile number';
   const location = profile?.profile?.address?.city && profile?.profile?.address?.state
     ? `${profile.profile.address.city}, ${profile.profile.address.state}`
     : 'Location not set';
@@ -170,10 +170,10 @@ const ParentProfileScreen: React.FC = () => {
       items: [
         { icon: 'create-outline',      label: 'Edit Profile',    color: colors.primary,   onPress: handleEditProfile },
         { icon: 'wallet-outline',       label: 'Wallet',          color: colors.success,   onPress: () => navigation.navigate('Wallet', { role: 'parent' }) },
-        { icon: 'videocam-outline',      label: 'Live Classes',    color: colors.info,      onPress: () => navigation.navigate('LiveClasses', { role: 'parent' }) },
         { icon: 'storefront-outline',    label: 'Course Marketplace', color: colors.secondary, onPress: () => navigation.navigate('CourseMarketplace', { role: 'parent' }) },
-        { icon: 'people-outline',        label: 'My Children',     color: colors.pink,      onPress: () => {} },
+        { icon: 'people-outline',        label: 'My Children',     color: colors.pink,      onPress: () => navigation.navigate('Requirements') },
         { icon: 'card-outline',          label: 'Payment History', color: colors.pink,      onPress: () => navigation.navigate('ParentPaymentHistory') },
+        { icon: 'ribbon-outline',        label: 'Subscription',    color: colors.secondary, onPress: () => navigation.navigate('SubscriptionPlans') },
         { icon: 'chatbubble-outline',    label: 'My Reviews',      color: colors.warning,  onPress: () => navigation.navigate('ParentReviewHistory') },
         { icon: 'call-outline',          label: 'Contact History', color: colors.accent,   onPress: () => navigation.navigate('ContactHistory') },
         { icon: 'bookmark-outline',      label: 'Saved Tutors',    color: colors.primary,  onPress: () => navigation.navigate('Shortlisted') },

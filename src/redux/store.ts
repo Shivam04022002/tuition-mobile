@@ -3,12 +3,14 @@ import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 import authSlice from './slices/authSlice';
 import userSlice from './slices/userSlice';
 import appSlice from './slices/appSlice';
+import parentSubscriptionSlice from './slices/parentSubscriptionSlice';
 
 export const store = configureStore({
   reducer: {
     auth: authSlice,
     user: userSlice,
     app: appSlice,
+    parentSubscription: parentSubscriptionSlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

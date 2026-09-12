@@ -5,6 +5,8 @@ import { colors } from '../../theme/colors';
 import { shadows } from '../../theme/shadows';
 import { ProfileAvatar, PrimaryButton } from '../ui';
 import type { RecommendedTutor } from '../../services/recommendationApi';
+import { useAppSelector } from '../../redux/store';
+import { selectHasActiveSubscription } from '../../redux/slices/parentSubscriptionSlice';
 
 interface TutorCardProps {
   tutor: RecommendedTutor;
@@ -33,6 +35,7 @@ const getMatchBadgeColors = (percentage: number) => {
 };
 
 const TutorCard: React.FC<TutorCardProps> = React.memo(({ tutor, onPress, onContact }) => {
+  const hasActiveSubscription = useAppSelector(selectHasActiveSubscription);
   const teacher = tutor.teacherProfileId;
   const name = teacher?.basicDetails?.fullName || 'Unknown';
   const photo = teacher?.basicDetails?.profilePhoto;
@@ -110,7 +113,14 @@ const TutorCard: React.FC<TutorCardProps> = React.memo(({ tutor, onPress, onCont
 
       <View style={styles.actions}>
         <PrimaryButton label="View Profile" onPress={() => onPress(tutor)} variant="outline" size="sm" style={styles.actionButton} />
-        <PrimaryButton label="Contact" onPress={() => onContact(tutor)} variant="primary" size="sm" style={styles.actionButton} />
+        <PrimaryButton
+          label="Contact"
+          icon={hasActiveSubscription ? undefined : 'lock-closed'}
+          onPress={() => onContact(tutor)}
+          variant="primary"
+          size="sm"
+          style={styles.actionButton}
+        />
       </View>
     </TouchableOpacity>
   );

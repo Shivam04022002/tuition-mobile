@@ -41,6 +41,12 @@ export const TimeSlotEditor: React.FC<TimeSlotEditorProps> = ({
     isActive: true,
   });
   const [editingSlot, setEditingSlot] = useState<string | null>(null);
+  // Buffers the in-progress edit locally instead of firing a network PUT on
+  // every keystroke — the previous version called onUpdateTimeSlot() from
+  // onChangeText directly, which raced overlapping requests per character
+  // and (since handleUpdateSlot exited edit mode on success) could kick the
+  // user out of the text field mid-typing.
+  const [editBuffer, setEditBuffer] = useState<Partial<CustomTimeSlot>>({});
   const [showAddForm, setShowAddForm] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
 
@@ -75,11 +81,31 @@ export const TimeSlotEditor: React.FC<TimeSlotEditorProps> = ({
   const handleUpdateSlot = useCallback(async (id: string, updates: Partial<CustomTimeSlot>) => {
     try {
       await onUpdateTimeSlot(id, updates);
-      setEditingSlot(null);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to update time slot');
     }
   }, [onUpdateTimeSlot]);
+
+  // Enter edit mode (seeding the local buffer from the current values) or, if
+  // already editing, commit the buffered changes and exit.
+  const handleToggleEdit = useCallback((slot: CustomTimeSlot) => {
+    if (editingSlot === slot.id) {
+      const updates: Partial<CustomTimeSlot> = {};
+      if (editBuffer.label !== undefined && editBuffer.label !== slot.label) updates.label = editBuffer.label;
+      if (editBuffer.startTime !== undefined && editBuffer.startTime !== slot.startTime) updates.startTime = editBuffer.startTime;
+      if (editBuffer.endTime !== undefined && editBuffer.endTime !== slot.endTime) updates.endTime = editBuffer.endTime;
+
+      setEditingSlot(null);
+      setEditBuffer({});
+
+      if (Object.keys(updates).length > 0) {
+        handleUpdateSlot(slot.id, updates);
+      }
+    } else {
+      setEditBuffer({ label: slot.label, startTime: slot.startTime, endTime: slot.endTime });
+      setEditingSlot(slot.id);
+    }
+  }, [editingSlot, editBuffer, handleUpdateSlot]);
 
   const handleRemoveSlot = useCallback(async (id: string) => {
     Alert.alert(
@@ -162,8 +188,8 @@ export const TimeSlotEditor: React.FC<TimeSlotEditorProps> = ({
                   borderColor: colors.border,
                 },
               ]}
-              value={slot.label}
-              onChangeText={(text) => handleUpdateSlot(slot.id, { label: text })}
+              value={editBuffer.label ?? slot.label}
+              onChangeText={(text) => setEditBuffer((prev) => ({ ...prev, label: text }))}
               placeholder="Slot label"
               placeholderTextColor={colors.textSecondary}
             />
@@ -196,7 +222,7 @@ export const TimeSlotEditor: React.FC<TimeSlotEditorProps> = ({
             
             <TouchableOpacity
               style={[styles.editButton, { backgroundColor: colors.background }]}
-              onPress={() => setEditingSlot(isEditing ? null : slot.id)}
+              onPress={() => handleToggleEdit(slot)}
               disabled={isLoading}
             >
               <Ionicons
@@ -228,8 +254,8 @@ export const TimeSlotEditor: React.FC<TimeSlotEditorProps> = ({
                     borderColor: colors.border,
                   },
                 ]}
-                value={slot.startTime}
-                onChangeText={(text) => handleUpdateSlot(slot.id, { startTime: text })}
+                value={editBuffer.startTime ?? slot.startTime}
+                onChangeText={(text) => setEditBuffer((prev) => ({ ...prev, startTime: text }))}
                 placeholder="Start (HH:mm)"
                 placeholderTextColor={colors.textSecondary}
                 maxLength={5}
@@ -244,8 +270,8 @@ export const TimeSlotEditor: React.FC<TimeSlotEditorProps> = ({
                     borderColor: colors.border,
                   },
                 ]}
-                value={slot.endTime}
-                onChangeText={(text) => handleUpdateSlot(slot.id, { endTime: text })}
+                value={editBuffer.endTime ?? slot.endTime}
+                onChangeText={(text) => setEditBuffer((prev) => ({ ...prev, endTime: text }))}
                 placeholder="End (HH:mm)"
                 placeholderTextColor={colors.textSecondary}
                 maxLength={5}
@@ -261,11 +287,12 @@ export const TimeSlotEditor: React.FC<TimeSlotEditorProps> = ({
     );
   }, [
     editingSlot,
+    editBuffer,
     dayTimeSlots,
     selectedDay,
     colors,
     isLoading,
-    handleUpdateSlot,
+    handleToggleEdit,
     toggleTimeSlotForDay,
     handleRemoveSlot,
   ]);

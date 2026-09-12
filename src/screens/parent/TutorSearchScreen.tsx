@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppSelector } from '../../redux/store';
 import { selectAuthToken } from '../../redux/slices/authSlice';
+import { selectHasActiveSubscription } from '../../redux/slices/parentSubscriptionSlice';
 import { useTutorSearch } from '../../hooks/useTutorSearch';
 import { useTutorFilters } from '../../hooks/useTutorFilters';
 import { colors } from '../../theme/colors';
@@ -21,6 +22,7 @@ import SearchBar from '../../components/search/SearchBar';
 import RecentSearches from '../../components/search/RecentSearches';
 import { FilterModal, ActiveFilterChips } from '../../components/filters';
 import TutorCard from '../../components/parent/TutorCard';
+import SubscriptionRequiredModal from '../../components/parent/SubscriptionRequiredModal';
 import { PrimaryButton } from '../../components/ui';
 import { SearchTutor } from '../../services/tutorSearchApi';
 import { FilterParams } from '../../services/tutorFilterApi';
@@ -121,7 +123,9 @@ const TutorSearchScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const token = useAppSelector(selectAuthToken);
+  const hasActiveSubscription = useAppSelector(selectHasActiveSubscription);
   const [showFilterModal, setShowFilterModal] = React.useState(false);
+  const [paywallVisible, setPaywallVisible] = React.useState(false);
 
   const {
     query,
@@ -164,10 +168,14 @@ const TutorSearchScreen: React.FC = () => {
 
   const handleContact = useCallback(
     (tutor: SearchTutor) => {
+      if (!hasActiveSubscription) {
+        setPaywallVisible(true);
+        return;
+      }
       trackTutorOpen(tutor._id);
       navigation.navigate('TutorProfile', { tutorId: tutor._id, showContact: true });
     },
-    [navigation, trackTutorOpen]
+    [hasActiveSubscription, navigation, trackTutorOpen]
   );
 
   const handleRecentSearchSelect = useCallback(
@@ -313,6 +321,15 @@ const TutorSearchScreen: React.FC = () => {
           applyFilters();
         }}
         onReset={resetFilters}
+      />
+
+      <SubscriptionRequiredModal
+        visible={paywallVisible}
+        onClose={() => setPaywallVisible(false)}
+        onUpgrade={() => {
+          setPaywallVisible(false);
+          navigation.navigate('SubscriptionPlans');
+        }}
       />
     </View>
   );

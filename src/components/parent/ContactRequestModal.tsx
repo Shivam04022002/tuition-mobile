@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Modal,
-  TextInput,
   ActivityIndicator,
   ScrollView,
   KeyboardAvoidingView,
@@ -15,6 +14,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { shadows } from '../../theme/shadows';
 import { PrimaryButton } from '../ui';
+
+// ── Canned messages ──────────────────────────────────────────────────────────
+// Replaces a free-text box: faster for the parent, and keeps first-contact
+// messages predictable/moderation-friendly.
+const CANNED_MESSAGES = [
+  "Hi, I'm interested in a tutor for my child. Could we discuss the details?",
+  "Hello, I'd like to know more about your teaching experience and availability.",
+  "I have a specific requirement posted — please check if it matches your expertise.",
+  'Can we schedule a call to discuss the syllabus and fees?',
+  "I'm looking for a trial/demo class before finalizing. Are you available?",
+];
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -49,22 +59,22 @@ const ContactRequestModal: React.FC<ContactRequestModalProps> = ({
   isSubmitting = false,
   error = null,
 }) => {
-  const [message, setMessage] = useState('');
+  const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
   const [selectedRequirementId, setSelectedRequirementId] = useState<string | undefined>();
 
   const handleClose = useCallback(() => {
     if (!isSubmitting) {
-      setMessage('');
+      setSelectedMessage(null);
       setSelectedRequirementId(undefined);
       onClose();
     }
   }, [onClose, isSubmitting]);
 
   const handleSubmit = useCallback(async () => {
-    await onSubmit(message.trim(), selectedRequirementId);
-    setMessage('');
+    await onSubmit(selectedMessage ?? '', selectedRequirementId);
+    setSelectedMessage(null);
     setSelectedRequirementId(undefined);
-  }, [onSubmit, message, selectedRequirementId]);
+  }, [onSubmit, selectedMessage, selectedRequirementId]);
 
   const getTitle = () => {
     switch (contactType) {
@@ -166,22 +176,30 @@ const ContactRequestModal: React.FC<ContactRequestModalProps> = ({
               </View>
             )}
 
-            {/* Message Input */}
+            {/* Message (pick one, optional) */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Message (Optional)</Text>
-              <TextInput
-                style={styles.messageInput}
-                value={message}
-                onChangeText={setMessage}
-                placeholder={`Introduce yourself and mention your tuition requirements...`}
-                placeholderTextColor={colors.textTertiary}
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-                maxLength={1000}
-                editable={!isSubmitting}
-              />
-              <Text style={styles.charCount}>{message.length}/1000</Text>
+              {CANNED_MESSAGES.map((text) => {
+                const isSelected = selectedMessage === text;
+                return (
+                  <TouchableOpacity
+                    key={text}
+                    style={[styles.messageOption, isSelected && styles.messageOptionSelected]}
+                    onPress={() => setSelectedMessage(isSelected ? null : text)}
+                    disabled={isSubmitting}
+                    activeOpacity={0.75}
+                  >
+                    <Ionicons
+                      name={isSelected ? 'radio-button-on' : 'radio-button-off'}
+                      size={18}
+                      color={isSelected ? colors.primary : colors.textTertiary}
+                    />
+                    <Text style={[styles.messageOptionText, isSelected && styles.messageOptionTextSelected]}>
+                      {text}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             {/* Error Message */}
@@ -322,22 +340,30 @@ const styles = StyleSheet.create({
     color: colors.textWhite,
     fontWeight: '600',
   },
-  messageInput: {
+  messageOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     backgroundColor: colors.background,
     borderRadius: 12,
-    padding: 16,
-    fontSize: 14,
-    color: colors.text,
+    padding: 12,
     borderWidth: 1,
     borderColor: colors.border,
-    minHeight: 120,
-    textAlignVertical: 'top',
+    marginBottom: 8,
   },
-  charCount: {
-    fontSize: 12,
-    color: colors.textTertiary,
-    textAlign: 'right',
-    marginTop: 6,
+  messageOptionSelected: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary + '0A',
+  },
+  messageOptionText: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.text,
+    lineHeight: 18,
+  },
+  messageOptionTextSelected: {
+    color: colors.text,
+    fontWeight: '600',
   },
   errorContainer: {
     flexDirection: 'row',

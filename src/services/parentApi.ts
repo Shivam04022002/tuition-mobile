@@ -4,14 +4,17 @@ const API_BASE_URL = apiConfig.baseURL;
 
 // Types
 export interface ParentProfile {
-  id: string;
+  _id: string;
+  email: string;
+  phoneNumber: string;
   role: string;
   profile: {
-    parentName: string;
-    mobileNumber: string;
-    email: string;
+    firstName: string;
+    lastName: string;
+    profileImage?: string | null;
+    address?: { city?: string; state?: string } | null;
   };
-  isProfileComplete: boolean;
+  profileCompleted: boolean;
 }
 
 export interface Requirement {
@@ -79,7 +82,10 @@ export const getParentProfile = async (token: string): Promise<ParentProfile> =>
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) throw new Error('Failed to fetch profile');
-  return response.json();
+  const body = await response.json();
+  // Backend wraps the actual user document at data.user, alongside
+  // requirements/stats — unwrap it so callers get a flat profile object.
+  return body.data?.user ?? body;
 };
 
 export const getParentRequirements = async (token: string): Promise<Requirement[]> => {
@@ -118,7 +124,7 @@ export const getParentDashboard = async (token: string): Promise<any> => {
 };
 
 export const getUpcomingDemos = async (token: string): Promise<UpcomingDemo[]> => {
-  const response = await fetch(`${API_BASE_URL}/demo-classes/parent`, {
+  const response = await fetch(`${API_BASE_URL}/demos/parent`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) throw new Error('Failed to fetch demos');

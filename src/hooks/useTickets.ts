@@ -69,6 +69,11 @@ export function useTickets(opts?: {
   mine?: boolean;
 }): UseTicketsResult {
   const token = useSelector(selectAuthToken) ?? '';
+  // Depend on the individual primitive filter values, not `opts` itself —
+  // callers commonly pass a fresh object literal (e.g. useTickets({ status }))
+  // on every render, which would otherwise give fetchTickets a new identity
+  // each time and re-fire the effect below in an infinite loop.
+  const { status, category, priority, mine } = opts ?? {};
 
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [counts, setCounts] = useState<TicketCounts>({
@@ -83,10 +88,10 @@ export function useTickets(opts?: {
   const [error, setError] = useState<string | null>(null);
 
   const fetchTickets = useCallback(async () => {
-    const result: TicketListResult = await getTickets(token, opts);
+    const result: TicketListResult = await getTickets(token, { status, category, priority, mine });
     setTickets(result.tickets);
     setCounts(result.counts);
-  }, [token, opts]);
+  }, [token, status, category, priority, mine]);
 
   // Initial load
   useEffect(() => {

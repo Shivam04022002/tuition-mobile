@@ -24,7 +24,7 @@ interface Language {
 
 const LANGUAGES: Language[] = [
   { code: 'en', label: 'English', nativeLabel: 'English', flag: '🇬🇧', available: true },
-  { code: 'hi', label: 'Hindi', nativeLabel: 'हिन्दी', flag: '🇮🇳', available: true },
+  { code: 'hi', label: 'Hindi', nativeLabel: 'हिन्दी', flag: '🇮🇳', available: false },
   { code: 'ta', label: 'Tamil', nativeLabel: 'தமிழ்', flag: '🇮🇳', available: false },
   { code: 'te', label: 'Telugu', nativeLabel: 'తెలుగు', flag: '🇮🇳', available: false },
   { code: 'mr', label: 'Marathi', nativeLabel: 'मराठी', flag: '🇮🇳', available: false },

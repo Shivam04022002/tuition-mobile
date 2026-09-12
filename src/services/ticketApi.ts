@@ -44,6 +44,9 @@ export interface Ticket {
   assignedTo?: string;
   assignedToName?: string;
   messages: TicketMessage[];
+  attachmentName?: string;
+  /** Short-lived signed URL — only present on the single-ticket detail fetch. */
+  attachmentUrl?: string;
   createdAt: string;
   updatedAt: string;
   resolvedAt?: string;
@@ -84,6 +87,8 @@ export interface CreateTicketData {
   priority?: TicketPriority;
   subject: string;
   description: string;
+  /** A picked image/PDF, as returned by expo-image-picker / expo-document-picker. */
+  attachment?: { uri: string; name: string; mimeType: string };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -218,14 +223,29 @@ export async function createTicket(
   token: string,
   data: CreateTicketData,
 ): Promise<Ticket> {
-  const res = await fetch(`${BASE}/tickets`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
+  const { attachment, ...fields } = data;
+
+  let body: FormData | string;
+  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+
+  if (attachment) {
+    const form = new FormData();
+    Object.entries(fields).forEach(([key, value]) => {
+      if (value !== undefined) form.append(key, String(value));
+    });
+    form.append('attachment', {
+      uri: attachment.uri,
+      name: attachment.name,
+      type: attachment.mimeType,
+    } as any);
+    body = form;
+    // Let fetch set the multipart boundary itself — do not set Content-Type here.
+  } else {
+    headers['Content-Type'] = 'application/json';
+    body = JSON.stringify(fields);
+  }
+
+  const res = await fetch(`${BASE}/tickets`, { method: 'POST', headers, body });
   const json = await res.json();
   if (!res.ok || !json.success) throw new Error(json.message || 'Failed to create ticket');
   return json.data as Ticket;

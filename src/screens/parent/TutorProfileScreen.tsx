@@ -15,6 +15,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppSelector } from '../../redux/store';
 import { selectAuthToken } from '../../redux/slices/authSlice';
+import { selectHasActiveSubscription } from '../../redux/slices/parentSubscriptionSlice';
 import { colors } from '../../theme/colors';
 import { shadows } from '../../theme/shadows';
 import { ProfileAvatar, PrimaryButton } from '../../components/ui';
@@ -37,6 +38,7 @@ import ReviewCard from '../../components/parent/ReviewCard';
 import WriteReviewModal from '../../components/parent/WriteReviewModal';
 import ContactRequestModal from '../../components/parent/ContactRequestModal';
 import DemoRequestModal from '../../components/parent/DemoRequestModal';
+import SubscriptionRequiredModal from '../../components/parent/SubscriptionRequiredModal';
 import { useParentContact } from '../../hooks/useContact';
 
 const { width } = Dimensions.get('window');
@@ -86,6 +88,7 @@ const TutorProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<any, 'TutorProfile'>>();
   const token = useAppSelector(selectAuthToken);
+  const hasActiveSubscription = useAppSelector(selectHasActiveSubscription);
 
   const { tutorId, matchId, showContact: initialShowContact } = route.params || {};
   const profileId = tutorId || matchId;
@@ -105,6 +108,7 @@ const TutorProfileScreen: React.FC = () => {
   const [contactModalVisible, setContactModalVisible] = useState(false);
   const [contactModalType, setContactModalType] = useState<'call' | 'whatsapp' | 'message'>('message');
   const [demoModalVisible, setDemoModalVisible] = useState(false);
+  const [paywallVisible, setPaywallVisible] = useState(false);
 
   const reviewHook = useReviews(profileId || '');
   const contactHook = useParentContact(token);
@@ -205,21 +209,29 @@ const TutorProfileScreen: React.FC = () => {
   }, [token, profile, profileId, shortlistLoading]);
 
   const handleOpenContactModal = useCallback((type: 'call' | 'whatsapp' | 'message') => {
+    if (!hasActiveSubscription) {
+      setPaywallVisible(true);
+      return;
+    }
     setContactModalType(type);
     setContactModalVisible(true);
     trackEvent('Contact Modal Opened', { tutorId: profileId, type });
-  }, [profileId]);
+  }, [hasActiveSubscription, profileId]);
 
   const handleOpenDemoModal = useCallback(() => {
+    if (!hasActiveSubscription) {
+      setPaywallVisible(true);
+      return;
+    }
     setDemoModalVisible(true);
     trackEvent('Demo Modal Opened', { tutorId: profileId });
-  }, [profileId]);
+  }, [hasActiveSubscription, profileId]);
 
   const handleContactSubmit = useCallback(async (message: string, requirementId?: string) => {
-    if (!token || !profileId) return;
+    if (!token || !profileId || !profile?.userId) return;
 
     const result = await contactHook.createRequest({
-      teacherId: profileId,
+      teacherId: profile.userId,
       teacherProfileId: profileId,
       requirementId,
       contactType: contactModalType,
@@ -234,7 +246,7 @@ const TutorProfileScreen: React.FC = () => {
         [{ text: 'OK' }]
       );
     }
-  }, [token, profileId, contactModalType, contactHook]);
+  }, [token, profileId, profile, contactModalType, contactHook]);
 
   const handleDemoSubmit = useCallback(async (data: {
     demoDate: string;
@@ -244,10 +256,10 @@ const TutorProfileScreen: React.FC = () => {
     message?: string;
     requirementId?: string;
   }) => {
-    if (!token || !profileId) return;
+    if (!token || !profileId || !profile?.userId) return;
 
     const result = await contactHook.createDemo({
-      teacherId: profileId,
+      teacherId: profile.userId,
       teacherProfileId: profileId,
       requirementId: data.requirementId,
       demoDate: data.demoDate,
@@ -265,7 +277,7 @@ const TutorProfileScreen: React.FC = () => {
         [{ text: 'OK' }]
       );
     }
-  }, [token, profileId, contactHook]);
+  }, [token, profileId, profile, contactHook]);
 
   const handleGalleryPress = useCallback((_uri: string, _index: number) => {
     trackEvent('Gallery Viewed', { tutorId: profileId });
@@ -596,6 +608,16 @@ const TutorProfileScreen: React.FC = () => {
         error={contactHook.submitError}
       />
 
+      {/* Subscription Required Paywall */}
+      <SubscriptionRequiredModal
+        visible={paywallVisible}
+        onClose={() => setPaywallVisible(false)}
+        onUpgrade={() => {
+          setPaywallVisible(false);
+          navigation.navigate('SubscriptionPlans');
+        }}
+      />
+
       {/* Fixed Action Bar */}
       <View style={styles.actionBar}>
         <TouchableOpacity
@@ -613,11 +635,11 @@ const TutorProfileScreen: React.FC = () => {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.actionBtn, styles.outlineBtn]} onPress={handleOpenDemoModal}>
-          <Ionicons name="videocam-outline" size={18} color={colors.primary} />
+          <Ionicons name={hasActiveSubscription ? 'videocam-outline' : 'lock-closed-outline'} size={18} color={colors.primary} />
           <Text style={[styles.actionBtnText, styles.outlineBtnText]}>Demo</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.actionBtn, styles.primaryBtn]} onPress={() => handleOpenContactModal('call')}>
-          <Ionicons name="call-outline" size={18} color={colors.textWhite} />
+          <Ionicons name={hasActiveSubscription ? 'call-outline' : 'lock-closed-outline'} size={18} color={colors.textWhite} />
           <Text style={[styles.actionBtnText, styles.primaryBtnText]}>Contact</Text>
         </TouchableOpacity>
       </View>

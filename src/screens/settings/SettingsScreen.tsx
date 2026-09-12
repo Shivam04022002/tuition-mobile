@@ -43,7 +43,7 @@ const SettingsScreen: React.FC = () => {
       label: 'Profile',
       subtitle: 'Manage your personal info',
       iconColor: colors.primary,
-      onPress: () => {},
+      onPress: () => navigation.navigate(role === 'teacher' ? 'TeacherOnboarding' : 'EditParentProfile'),
     },
     {
       icon: 'notifications-outline',

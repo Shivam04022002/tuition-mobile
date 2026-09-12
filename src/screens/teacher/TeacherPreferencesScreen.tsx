@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -69,6 +70,7 @@ const TeacherPreferencesScreen: React.FC = () => {
   const [examPreparation, setExamPreparation] = useState<string[]>([]);
   const [subjectExperience, setSubjectExperience] = useState<SubjectExperience[]>([]);
   const [initialised, setInitialised] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // Sync from server on first load
   React.useEffect(() => {
@@ -127,11 +129,7 @@ const TeacherPreferencesScreen: React.FC = () => {
 
     if (ok) {
       if (__DEV__) console.log('[TeacherPreferences] Preferences Updated');
-      Alert.alert(
-        'Saved!',
-        'Your teaching preferences have been updated. This improves your match quality with parents.',
-        [{ text: 'Great', style: 'default' }]
-      );
+      setShowSuccessModal(true);
     }
   }, [
     subjects, classes, boards, teachingModes, studentTypes,
@@ -403,6 +401,31 @@ const TeacherPreferencesScreen: React.FC = () => {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Save success modal — replaces a plain Alert.alert() with something
+          that actually celebrates the update. */}
+      <Modal visible={showSuccessModal} transparent animationType="fade" onRequestClose={() => setShowSuccessModal(false)}>
+        <View style={styles.successOverlay}>
+          <View style={styles.successCard}>
+            <View style={styles.successIconRing}>
+              <View style={styles.successIconCircle}>
+                <Ionicons name="checkmark" size={36} color={colors.textWhite} />
+              </View>
+            </View>
+            <Text style={styles.successTitle}>Preferences Updated!</Text>
+            <Text style={styles.successSubtitle}>
+              This improves your match quality with parents looking for tutors like you.
+            </Text>
+            <TouchableOpacity
+              style={styles.successBtn}
+              onPress={() => setShowSuccessModal(false)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.successBtnText}>Great!</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -691,6 +714,66 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   floatingSaveBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.textWhite,
+  },
+  successOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  successCard: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: colors.card,
+    borderRadius: 24,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    ...shadows.lg,
+  },
+  successIconRing: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: `${colors.success}20`,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  successIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.success,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  successTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  successSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  successBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    ...shadows.md,
+  },
+  successBtnText: {
     fontSize: 15,
     fontWeight: '700',
     color: colors.textWhite,

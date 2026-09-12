@@ -11,6 +11,7 @@ import {
   TextInput,
   ActivityIndicator,
   RefreshControl,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -209,6 +210,19 @@ const TicketDetailScreen: React.FC = () => {
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>DESCRIPTION</Text>
           <Text style={styles.descriptionText}>{ticket.description}</Text>
+          {ticket.attachmentUrl && (
+            <TouchableOpacity
+              style={styles.attachmentRow}
+              onPress={() => Linking.openURL(ticket.attachmentUrl!)}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="document-attach-outline" size={18} color={colors.primary} />
+              <Text style={styles.attachmentLink} numberOfLines={1}>
+                {ticket.attachmentName || 'View attachment'}
+              </Text>
+              <Ionicons name="open-outline" size={16} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* ── Conversation Timeline */}
@@ -396,6 +410,17 @@ const styles = StyleSheet.create({
   roleBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8 },
   roleText: { fontSize: 11, fontWeight: '700' },
   descriptionText: { fontSize: 14, color: colors.textSecondary, lineHeight: 22 },
+  attachmentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    backgroundColor: colors.primary + '0A',
+    borderRadius: 10,
+  },
+  attachmentLink: { flex: 1, fontSize: 13, fontWeight: '600', color: colors.primary },
   timeline: { gap: 0 },
   messageWrap: { position: 'relative' },
   timelineConnector: {

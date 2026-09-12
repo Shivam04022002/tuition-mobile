@@ -6,6 +6,7 @@ const API_BASE_URL = apiConfig.baseURL;
 
 export interface TutorProfileData {
   _id: string;
+  userId: string;
   basicDetails: {
     fullName: string;
     profilePhoto?: string;
