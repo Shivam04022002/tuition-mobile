@@ -24,13 +24,6 @@ interface Language {
 
 const LANGUAGES: Language[] = [
   { code: 'en', label: 'English', nativeLabel: 'English', flag: '🇬🇧', available: true },
-  { code: 'hi', label: 'Hindi', nativeLabel: 'हिन्दी', flag: '🇮🇳', available: false },
-  { code: 'ta', label: 'Tamil', nativeLabel: 'தமிழ்', flag: '🇮🇳', available: false },
-  { code: 'te', label: 'Telugu', nativeLabel: 'తెలుగు', flag: '🇮🇳', available: false },
-  { code: 'mr', label: 'Marathi', nativeLabel: 'मराठी', flag: '🇮🇳', available: false },
-  { code: 'bn', label: 'Bengali', nativeLabel: 'বাংলা', flag: '🇮🇳', available: false },
-  { code: 'gu', label: 'Gujarati', nativeLabel: 'ગુજરાતી', flag: '🇮🇳', available: false },
-  { code: 'kn', label: 'Kannada', nativeLabel: 'ಕನ್ನಡ', flag: '🇮🇳', available: false },
 ];
 
 const LanguageSettingsScreen: React.FC = () => {
@@ -41,7 +34,6 @@ const LanguageSettingsScreen: React.FC = () => {
   const [selected, setSelected] = useState<string>('en');
 
   const available = LANGUAGES.filter(l => l.available);
-  const comingSoon = LANGUAGES.filter(l => !l.available);
 
   return (
     <View style={styles.wrapper}>
@@ -95,32 +87,6 @@ const LanguageSettingsScreen: React.FC = () => {
               {idx < available.length - 1 && <View style={styles.divider} />}
             </React.Fragment>
           ))}
-        </View>
-
-        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>COMING SOON</Text>
-        <View style={styles.card}>
-          {comingSoon.map((lang, idx) => (
-            <React.Fragment key={lang.code}>
-              <View style={[styles.langRow, styles.disabledRow]}>
-                <Text style={[styles.langFlag, styles.disabledFlag]}>{lang.flag}</Text>
-                <View style={styles.langText}>
-                  <Text style={[styles.langLabel, styles.disabledText]}>{lang.label}</Text>
-                  <Text style={[styles.langNative, styles.disabledText]}>{lang.nativeLabel}</Text>
-                </View>
-                <View style={styles.comingSoonBadge}>
-                  <Text style={styles.comingSoonText}>Soon</Text>
-                </View>
-              </View>
-              {idx < comingSoon.length - 1 && <View style={styles.divider} />}
-            </React.Fragment>
-          ))}
-        </View>
-
-        <View style={styles.noteCard}>
-          <Ionicons name="globe-outline" size={16} color={colors.secondary} />
-          <Text style={styles.noteText}>
-            More regional languages are being added. We'll notify you when your language is available.
-          </Text>
         </View>
 
         <View style={{ height: 40 }} />

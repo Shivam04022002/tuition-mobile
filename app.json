@@ -42,6 +42,12 @@
         {
           "locationWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to auto-fill your address."
         }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.REPLACE_WITH_IOS_CLIENT_ID"
+        }
       ]
     ],
     "newArchEnabled": true,

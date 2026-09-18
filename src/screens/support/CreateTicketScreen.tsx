@@ -20,21 +20,10 @@ import { shadows } from '../../theme/shadows';
 import { useTickets } from '../../hooks/useTickets';
 import {
   TicketCategory,
-  TicketPriority,
   PARENT_TICKET_CATEGORIES,
   TEACHER_TICKET_CATEGORIES,
-  TICKET_PRIORITIES,
-  TICKET_PRIORITY_COLORS,
   CATEGORY_DISPLAY,
-  PRIORITY_DISPLAY,
 } from '../../services/ticketApi';
-
-const PRIORITY_ICONS: Record<TicketPriority, string> = {
-  low: 'arrow-down-circle-outline',
-  medium: 'remove-circle-outline',
-  high: 'arrow-up-circle-outline',
-  urgent: 'alert-circle-outline',
-};
 
 const CreateTicketScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -49,7 +38,6 @@ const CreateTicketScreen: React.FC = () => {
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<TicketCategory | null>(null);
-  const [selectedPriority, setSelectedPriority] = useState<TicketPriority>('medium');
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [attachment, setAttachment] = useState<{ uri: string; name: string; mimeType: string } | null>(null);
 
@@ -89,7 +77,7 @@ const CreateTicketScreen: React.FC = () => {
     try {
       const ticket = await create({
         category: selectedCategory,
-        priority: selectedPriority.toLowerCase() as any,
+        priority: 'medium',
         subject: subject.trim(),
         description: description.trim(),
         attachment: attachment ?? undefined,
@@ -188,34 +176,6 @@ const CreateTicketScreen: React.FC = () => {
               ))}
             </View>
           )}
-        </View>
-
-        {/* Priority */}
-        <View style={styles.fieldGroup}>
-          <Text style={styles.fieldLabel}>Priority</Text>
-          <View style={styles.priorityRow}>
-            {TICKET_PRIORITIES.map((p) => {
-              const isActive = selectedPriority === p;
-              const pColor = TICKET_PRIORITY_COLORS[p];
-              return (
-                <TouchableOpacity
-                  key={p}
-                  style={[
-                    styles.priorityChip,
-                    { borderColor: isActive ? pColor : colors.border },
-                    isActive && { backgroundColor: pColor + '14' },
-                  ]}
-                  onPress={() => setSelectedPriority(p)}
-                  activeOpacity={0.75}
-                >
-                  <Ionicons name={PRIORITY_ICONS[p] as any} size={14} color={isActive ? pColor : colors.textSecondary} />
-                  <Text style={[styles.priorityChipText, { color: isActive ? pColor : colors.textSecondary }]}>
-                    {PRIORITY_DISPLAY[p]}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
         </View>
 
         {/* Description */}

@@ -207,6 +207,60 @@ export const continueWithoutOtp = async (data: { phoneNumber: string; role?: str
   return result;
 };
 
+// Google Sign-In status — tells the app whether Google login is configured
+// server-side before it tries to launch the native flow, plus the client IDs
+// the SDK needs to initialize (neither is secret).
+export const getGoogleAuthStatus = async (): Promise<{
+  success: boolean;
+  data: { enabled: boolean; webClientId: string; iosClientId: string };
+}> => {
+  const response = await fetch(`${API_BASE_URL}/auth/google/status`);
+  const result = await response.json();
+
+  if (!response.ok) {
+    // Fail closed — treat a broken status check the same as "not configured"
+    // rather than throwing and breaking the login screen.
+    return { success: false, data: { enabled: false, webClientId: '', iosClientId: '' } };
+  }
+
+  return result;
+};
+
+export interface GoogleAuthRoleRequired {
+  success: false;
+  code: 'ROLE_REQUIRED';
+  message: string;
+  data: { email: string; firstName: string; lastName: string; profileImage: string };
+}
+
+// Sign in (or sign up) with the ID token returned by the native Google
+// Sign-In SDK. `role` is only needed the first time a brand-new Google user
+// signs in — omit it and, if the account doesn't exist yet, the backend
+// responds 200 with `code: 'ROLE_REQUIRED'` instead of throwing, so the
+// caller can ask the user to pick a role and call this again with it.
+// A 503 (Google sign-in not configured/active) throws with the backend's
+// "temporarily unavailable" message, same as any other failure here.
+export const googleLogin = async (
+  idToken: string,
+  role?: 'parent' | 'teacher'
+): Promise<LoginResponse | GoogleAuthRoleRequired> => {
+  const response = await fetch(`${API_BASE_URL}/auth/google`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ idToken, role }),
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.message || 'Failed to sign in with Google');
+  }
+
+  return result;
+};
+
 // Logout API
 export const logout = async (token: string): Promise<void> => {
   await fetch(`${API_BASE_URL}/auth/logout`, {

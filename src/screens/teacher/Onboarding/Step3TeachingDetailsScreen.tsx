@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -111,8 +111,8 @@ const Step3TeachingDetailsScreen: React.FC = () => {
   const [groupSize, setGroupSize] = useState('5');
   const [groupRate, setGroupRate] = useState('');
   
-  const fadeAnim = new Animated.Value(0);
-  const slideAnim = new Animated.Value(50);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
 
   React.useEffect(() => {
     Animated.parallel([

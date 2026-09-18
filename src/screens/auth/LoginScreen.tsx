@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,8 +21,22 @@ import {
   setProfile,
   setRole as setUserRole,
 } from '../../redux/slices/userSlice';
+import {
+  GoogleSignin,
+  isErrorWithCode,
+  isSuccessResponse,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 import { useTheme } from '../../theme';
-import { login, sendOTP, verifyOTP, continueWithoutOtp, LoginResponse } from '../../services/authApi';
+import {
+  login,
+  sendOTP,
+  verifyOTP,
+  continueWithoutOtp,
+  getGoogleAuthStatus,
+  googleLogin,
+  LoginResponse,
+} from '../../services/authApi';
 
 type AuthStackParamList = {
   Login: undefined;
@@ -62,6 +76,30 @@ const LoginScreen: React.FC = () => {
   // Common state
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  // Google Sign-In — enabled only when the backend has active credentials
+  // configured (admin panel > Settings > Google OAuth). The button always
+  // shows; tapping it while disabled just explains why instead of hiding.
+  const [googleConfig, setGoogleConfig] = useState<{ enabled: boolean; webClientId: string; iosClientId: string } | null>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getGoogleAuthStatus().then((response) => {
+      if (cancelled) return;
+      setGoogleConfig(response.data);
+      if (response.data.enabled) {
+        GoogleSignin.configure({
+          webClientId: response.data.webClientId,
+          iosClientId: response.data.iosClientId || undefined,
+          offlineAccess: false,
+        });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Validation
   const validatePasswordLogin = useCallback(() => {
@@ -217,6 +255,74 @@ const LoginScreen: React.FC = () => {
     }));
     dispatch(setOnboardingCompleted(response.user.onboardingCompleted ?? true));
   }, [dispatch]);
+
+  // Ask a brand-new Google user which role they're signing up as, the same
+  // choice the phone/OTP signup flow collects via RoleSelectionScreen —
+  // done inline here instead of navigating away, since the Google idToken is
+  // already in hand and doesn't need to survive a screen change.
+  const promptGoogleRole = useCallback((idToken: string) => {
+    Alert.alert(
+      "I'm signing up as a...",
+      'Choose how you want to use Tuition Connect.',
+      [
+        {
+          text: 'Parent',
+          onPress: () => finishGoogleLogin(idToken, 'parent'),
+        },
+        {
+          text: 'Teacher',
+          onPress: () => finishGoogleLogin(idToken, 'teacher'),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const finishGoogleLogin = useCallback(async (idToken: string, role?: 'parent' | 'teacher') => {
+    setGoogleLoading(true);
+    try {
+      const response = await googleLogin(idToken, role);
+      if ('code' in response && response.code === 'ROLE_REQUIRED') {
+        promptGoogleRole(idToken);
+        return;
+      }
+      applyLoginResponse(response as LoginResponse);
+    } catch (error: any) {
+      Alert.alert('Google Sign-In Failed', error.message || 'Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  }, [applyLoginResponse, promptGoogleRole]);
+
+  const handleGoogleSignIn = useCallback(async () => {
+    if (!googleConfig?.enabled) {
+      Alert.alert(
+        'Google Sign-In Unavailable',
+        'Google service is temporarily down, please try again after sometime.',
+      );
+      return;
+    }
+
+    setGoogleLoading(true);
+    try {
+      if (Platform.OS === 'android') {
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      }
+      const response = await GoogleSignin.signIn();
+      if (!isSuccessResponse(response) || !response.data.idToken) {
+        return;
+      }
+      await finishGoogleLogin(response.data.idToken);
+    } catch (error: any) {
+      if (isErrorWithCode(error) && error.code === statusCodes.SIGN_IN_CANCELLED) {
+        return;
+      }
+      Alert.alert('Google Sign-In Failed', error.message || 'Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  }, [googleConfig, finishGoogleLogin]);
 
   // Verify OTP Handler
   const handleVerifyOTP = useCallback(async () => {
@@ -518,6 +624,30 @@ const LoginScreen: React.FC = () => {
           )}
         </View>
 
+        {/* Google Sign-In */}
+        <View style={styles.dividerRow}>
+          <View style={[styles.dividerLine, { backgroundColor: theme.colors.border ?? '#E5E7EB' }]} />
+          <Text style={[styles.dividerText, { color: theme.colors.textSecondary }]}>OR</Text>
+          <View style={[styles.dividerLine, { backgroundColor: theme.colors.border ?? '#E5E7EB' }]} />
+        </View>
+
+        <TouchableOpacity
+          style={[styles.googleButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border ?? '#E5E7EB' }]}
+          onPress={handleGoogleSignIn}
+          disabled={googleLoading}
+        >
+          {googleLoading ? (
+            <ActivityIndicator color={theme.colors.text} />
+          ) : (
+            <>
+              <Ionicons name="logo-google" size={20} color="#EA4335" style={styles.inputIcon} />
+              <Text style={[styles.googleButtonText, { color: theme.colors.text }]}>
+                Continue with Google
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}>
@@ -665,6 +795,33 @@ const styles = StyleSheet.create({
   },
   resendLink: {
     fontSize: 14,
+    fontWeight: '600',
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginHorizontal: 12,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    height: 56,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  googleButtonText: {
+    fontSize: 16,
     fontWeight: '600',
   },
   footer: {

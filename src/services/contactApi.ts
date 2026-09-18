@@ -131,9 +131,8 @@ export interface ContactHistoryResponse {
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (response.status === 401) throw new Error('Unauthorized');
-  if (response.status === 404) throw new Error('Not found');
   if (!response.ok) {
-    let msg = `Request failed (${response.status})`;
+    let msg = response.status === 404 ? 'Not found' : `Request failed (${response.status})`;
     try {
       const body = await response.json();
       msg = body?.message || msg;

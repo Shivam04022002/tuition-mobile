@@ -62,7 +62,7 @@ const SettingsScreen: React.FC = () => {
     {
       icon: 'language-outline',
       label: 'Language',
-      subtitle: 'English, Hindi & more',
+      subtitle: 'English',
       iconColor: colors.info,
       onPress: () => navigation.navigate('LanguageSettings'),
     },
@@ -72,7 +72,7 @@ const SettingsScreen: React.FC = () => {
           label: 'Availability',
           subtitle: 'Days, slots & teaching mode',
           iconColor: colors.success,
-          onPress: () => navigation.navigate('AvailabilitySettings'),
+          onPress: () => navigation.navigate('TeacherAvailability'),
         }]
       : []),
   ];
