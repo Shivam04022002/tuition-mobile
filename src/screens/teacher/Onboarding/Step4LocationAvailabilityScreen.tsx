@@ -16,6 +16,7 @@ import { useTheme } from '../../../theme';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
 import Input from '../../../components/common/Input';
+import SmartAddressPicker from '../../../components/common/SmartAddressPicker';
 
 interface BasicDetails {
   fullName: string;
@@ -126,6 +127,7 @@ const Step4LocationAvailabilityScreen: React.FC = () => {
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [pincode, setPincode] = useState('');
+  const [coordinates, setCoordinates] = useState({ latitude: 0, longitude: 0 });
   const [preferredAreas, setPreferredAreas] = useState<string[]>([]);
   const [teachingRadius, setTeachingRadius] = useState(5);
   const [availableDays, setAvailableDays] = useState<string[]>([]);
@@ -149,12 +151,6 @@ const Step4LocationAvailabilityScreen: React.FC = () => {
       }),
     ]).start();
   }, []);
-
-  const cities = [
-    'Delhi', 'Mumbai', 'Bangalore', 'Chennai', 'Kolkata',
-    'Hyderabad', 'Pune', 'Ahmedabad', 'Jaipur', 'Lucknow',
-    'Kanpur', 'Nagpur', 'Indore', 'Thane', 'Bhopal'
-  ];
 
   const areas = [
     'Connaught Place', 'Karol Bagh', 'Rohini', 'Dwarka', 'Lajpat Nagar',
@@ -197,14 +193,6 @@ const Step4LocationAvailabilityScreen: React.FC = () => {
     );
   };
 
-  const handleOpenMap = () => {
-    Alert.alert(
-      'Google Maps',
-      'This would open Google Maps for location selection. For demo, using default location.',
-      [{ text: 'OK' }]
-    );
-  };
-
   const validateForm = () => {
     if (!address) {
       Alert.alert('Validation Error', 'Please enter your complete address');
@@ -236,10 +224,7 @@ const Step4LocationAvailabilityScreen: React.FC = () => {
       address,
       city,
       pincode,
-      coordinates: {
-        latitude: 28.6139, // Default: Delhi
-        longitude: 77.2090,
-      },
+      coordinates,
       preferredAreas,
       teachingRadius,
       availableDays,
@@ -253,30 +238,6 @@ const Step4LocationAvailabilityScreen: React.FC = () => {
     };
 
     navigation.navigate('Step5PricingRevenue', { locationData });
-  };
-
-  const renderCityOption = (cityName: string) => {
-    const isSelected = city === cityName;
-    return (
-      <TouchableOpacity
-        key={cityName}
-        style={[
-          styles.cityChip,
-          {
-            backgroundColor: isSelected ? theme.colors.primary : theme.colors.card,
-            borderColor: isSelected ? theme.colors.primary : theme.colors.border,
-          },
-        ]}
-        onPress={() => setCity(cityName)}
-      >
-        <Text style={[
-          styles.cityChipText,
-          { color: isSelected ? theme.colors.textWhite : theme.colors.text }
-        ]}>
-          {cityName}
-        </Text>
-      </TouchableOpacity>
-    );
   };
 
   const renderAreaChip = (area: string) => {
@@ -425,42 +386,20 @@ const Step4LocationAvailabilityScreen: React.FC = () => {
           Your Location
         </Text>
         <Card variant="outlined" margin="small">
-          <Input
-            label="Complete Address"
-            placeholder="Enter your complete address"
-            value={address}
-            onChangeText={setAddress}
-            leftIcon="location-on"
-            required
+          <SmartAddressPicker
+            address={address}
+            city={city}
+            pincode={pincode}
+            onAddressTextChange={setAddress}
+            onCityChange={setCity}
+            onPincodeChange={setPincode}
+            onLocationSelect={(data) => {
+              setAddress(data.address);
+              setCity(data.city);
+              setPincode(data.pincode);
+              setCoordinates({ latitude: data.latitude, longitude: data.longitude });
+            }}
           />
-          
-          <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
-            City
-          </Text>
-          <View style={styles.chipsContainer}>
-            {cities.map(renderCityOption)}
-          </View>
-          
-          <Input
-            label="Pincode"
-            placeholder="Enter 6-digit pincode"
-            value={pincode}
-            onChangeText={setPincode}
-            leftIcon="mail"
-            keyboardType="numeric"
-            maxLength={6}
-            required
-          />
-          
-          <TouchableOpacity
-            style={[styles.mapButton, { backgroundColor: theme.colors.backgroundSecondary }]}
-            onPress={handleOpenMap}
-          >
-            <Text style={styles.mapIcon}>🗺️</Text>
-            <Text style={[styles.mapText, { color: theme.colors.textSecondary }]}>
-              Select Location on Map
-            </Text>
-          </TouchableOpacity>
         </Card>
       </Animated.View>
 
